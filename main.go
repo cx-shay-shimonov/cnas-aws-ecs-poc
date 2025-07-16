@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
-	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
+	ecsTypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
@@ -170,7 +170,7 @@ func loadAWSConfig(ctx context.Context) (aws.Config, error) {
 	return aws.Config{}, fmt.Errorf("❌ All credential options failed. Please check your AWS configuration")
 }
 
-func DescribeCluster(client *ecs.Client, clusterArn string) (*types.Cluster, error) {
+func DescribeCluster(client *ecs.Client, clusterArn string) (*ecsTypes.Cluster, error) {
 	resp, err := client.DescribeClusters(context.TODO(), &ecs.DescribeClustersInput{
 		Clusters: []string{clusterArn},
 	})
@@ -181,6 +181,150 @@ func DescribeCluster(client *ecs.Client, clusterArn string) (*types.Cluster, err
 		return &resp.Clusters[0], nil
 	}
 	return nil, nil
+}
+
+func listTasks(client *ecs.Client, clusterArn string) ([]string, error) {
+	output, err := client.ListTasks(context.TODO(), &ecs.ListTasksInput{
+		Cluster:       &clusterArn,
+		DesiredStatus: ecsTypes.DesiredStatusRunning, // Only running tasks
+	})
+	if err != nil {
+		return nil, err
+	}
+	return output.TaskArns, nil
+}
+
+func describeTasks(client *ecs.Client, clusterArn string, taskArns []string) ([]ecsTypes.Task, error) {
+	if len(taskArns) == 0 {
+		return nil, nil
+	}
+
+	output, err := client.DescribeTasks(context.TODO(), &ecs.DescribeTasksInput{
+		Cluster: &clusterArn,
+		Tasks:   taskArns,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return output.Tasks, nil
+}
+
+func listContainersInCluster(client *ecs.Client, clusterArn, clusterName string) error {
+	fmt.Printf("     🔍 Listing containers in cluster: %s\n", clusterName)
+
+	// Get tasks in the cluster
+	taskArns, err := listTasks(client, clusterArn)
+	if err != nil {
+		errorMsg := fmt.Sprintf("     ❌ Failed to list tasks in cluster %s: %v", clusterName, err)
+		fmt.Println(errorMsg)
+		logToFile("List Tasks", "ecs.Client.ListTasks()", "ERROR", errorMsg)
+		return err
+	}
+
+	if len(taskArns) == 0 {
+		noTasksMsg := fmt.Sprintf("     📝 No running tasks found in cluster: %s", clusterName)
+		fmt.Println(noTasksMsg)
+		logToFile("List Tasks", "ecs.Client.ListTasks()", "INFO", noTasksMsg)
+		return nil
+	}
+
+	fmt.Printf("     📊 Found %d running tasks\n", len(taskArns))
+	logToFile("List Tasks", "ecs.Client.ListTasks()", "SUCCESS", fmt.Sprintf("Found %d tasks in cluster %s", len(taskArns), clusterName))
+
+	// Describe tasks to get container details
+	tasks, err := describeTasks(client, clusterArn, taskArns)
+	if err != nil {
+		errorMsg := fmt.Sprintf("     ❌ Failed to describe tasks in cluster %s: %v", clusterName, err)
+		fmt.Println(errorMsg)
+		logToFile("Describe Tasks", "ecs.Client.DescribeTasks()", "ERROR", errorMsg)
+		return err
+	}
+
+	// Print container details for each task
+	var containerDetails []string
+	totalContainers := 0
+
+	for taskIndex, task := range tasks {
+		fmt.Printf("       📋 Task %d: %s\n", taskIndex+1, aws.ToString(task.TaskArn))
+		fmt.Printf("          Status: %s\n", aws.ToString(task.LastStatus))
+		fmt.Printf("          Desired Status: %s\n", task.DesiredStatus)
+
+		if task.TaskDefinitionArn != nil {
+			fmt.Printf("          Task Definition: %s\n", aws.ToString(task.TaskDefinitionArn))
+		}
+
+		if len(task.Containers) == 0 {
+			fmt.Printf("          ⚠️ No containers found in this task\n")
+			continue
+		}
+
+		fmt.Printf("          📦 Containers (%d):\n", len(task.Containers))
+
+		for containerIndex, container := range task.Containers {
+			totalContainers++
+			fmt.Printf("            %d. Container Name: %s\n", containerIndex+1, aws.ToString(container.Name))
+
+			if container.Image != nil {
+				fmt.Printf("               Image: %s\n", aws.ToString(container.Image))
+			}
+
+			fmt.Printf("               Last Status: %s\n", aws.ToString(container.LastStatus))
+
+			if container.RuntimeId != nil {
+				fmt.Printf("               Runtime ID: %s\n", aws.ToString(container.RuntimeId))
+			}
+
+			if container.TaskArn != nil {
+				fmt.Printf("               Task ARN: %s\n", aws.ToString(container.TaskArn))
+			}
+
+			if len(container.NetworkBindings) > 0 {
+				fmt.Printf("               Network Bindings:\n")
+				for _, binding := range container.NetworkBindings {
+					if binding.HostPort != nil && binding.ContainerPort != nil {
+						fmt.Printf("                 - Host:%d -> Container:%d", *binding.HostPort, *binding.ContainerPort)
+						if binding.Protocol != "" {
+							fmt.Printf(" (%s)", binding.Protocol)
+						}
+						fmt.Printf("\n")
+					}
+				}
+			}
+
+			if len(container.NetworkInterfaces) > 0 {
+				fmt.Printf("               Network Interfaces:\n")
+				for _, netInterface := range container.NetworkInterfaces {
+					if netInterface.PrivateIpv4Address != nil {
+						fmt.Printf("                 - Private IP: %s\n", aws.ToString(netInterface.PrivateIpv4Address))
+					}
+				}
+			}
+
+			// Log container details
+			containerDetailStr := fmt.Sprintf("Container: %s | Image: %s | Status: %s | Task: %s",
+				aws.ToString(container.Name),
+				aws.ToString(container.Image),
+				aws.ToString(container.LastStatus),
+				aws.ToString(task.TaskArn))
+			containerDetails = append(containerDetails, containerDetailStr)
+		}
+		fmt.Printf("\n")
+	}
+
+	// Summary and logging
+	summaryMsg := fmt.Sprintf("Found %d containers across %d tasks in cluster %s", totalContainers, len(tasks), clusterName)
+	fmt.Printf("     ✅ %s\n", summaryMsg)
+	logToFile("List Containers", "listContainersInCluster()", "SUCCESS", summaryMsg)
+
+	// Log detailed container information
+	if len(containerDetails) > 0 {
+		for _, detail := range containerDetails {
+			logToFile("Container Details", "ecs.Container", "INFO", detail)
+		}
+	}
+
+	return nil
 }
 
 func listECSClusters(ctx context.Context, client *ecs.Client) error {
@@ -280,6 +424,12 @@ func listECSClusters(ctx context.Context, client *ecs.Client) error {
 
 		// Log successful cluster description
 		logToFile("Describe ECS Cluster", "ecs.Client.DescribeClusters()", "SUCCESS", clusterDetailStr)
+
+		// List containers in this cluster
+		fmt.Printf("\n")
+		if err := listContainersInCluster(client, clusterArn, aws.ToString(cluster.ClusterName)); err != nil {
+			fmt.Printf("     ⚠️ Failed to list containers in cluster %s: %v\n", aws.ToString(cluster.ClusterName), err)
+		}
 	}
 
 	// Log to output file
