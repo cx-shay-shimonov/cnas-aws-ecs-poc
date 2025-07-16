@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -22,6 +24,7 @@ const REGION = "eu-west-2"
 
 // Global variables for logging
 var operationLogs []string
+var csvData [][]string
 
 // logToFile logs operation details to the global log slice
 func logToFile(requestName, sdkFunction, status, details string) {
@@ -31,9 +34,142 @@ func logToFile(requestName, sdkFunction, status, details string) {
 	operationLogs = append(operationLogs, logEntry)
 }
 
+// initializeCSV initializes the CSV data with headers
+func initializeCSV() {
+	headers := []string{
+		"Cluster_Name",
+		"Cluster_ARN",
+		"Cluster_Status",
+		"Cluster_Running_Tasks",
+		"Cluster_Pending_Tasks",
+		"Cluster_Active_Services",
+		"Task_ARN",
+		"Task_Status",
+		"Task_Desired_Status",
+		"Task_Definition_ARN",
+		"Container_Name",
+		"Container_Image",
+		"Container_Status",
+		"Container_Runtime_ID",
+		"Host_Port",
+		"Container_Port",
+		"Protocol",
+		"Private_IP_Address",
+		"Timestamp",
+	}
+	csvData = append(csvData, headers)
+}
+
+// addContainerToCSV adds container data with cluster context to CSV
+func addContainerToCSV(cluster *ecsTypes.Cluster, task *ecsTypes.Task, container *ecsTypes.Container) {
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+
+	// Extract network information
+	hostPort := ""
+	containerPort := ""
+	protocol := ""
+	privateIP := ""
+
+	if len(container.NetworkBindings) > 0 {
+		binding := container.NetworkBindings[0] // Take first binding
+		if binding.HostPort != nil {
+			hostPort = strconv.Itoa(int(*binding.HostPort))
+		}
+		if binding.ContainerPort != nil {
+			containerPort = strconv.Itoa(int(*binding.ContainerPort))
+		}
+		if binding.Protocol != "" {
+			protocol = string(binding.Protocol)
+		}
+	}
+
+	if len(container.NetworkInterfaces) > 0 {
+		netInterface := container.NetworkInterfaces[0] // Take first interface
+		if netInterface.PrivateIpv4Address != nil {
+			privateIP = aws.ToString(netInterface.PrivateIpv4Address)
+		}
+	}
+
+	row := []string{
+		aws.ToString(cluster.ClusterName),
+		aws.ToString(cluster.ClusterArn),
+		aws.ToString(cluster.Status),
+		strconv.Itoa(int(cluster.RunningTasksCount)),
+		strconv.Itoa(int(cluster.PendingTasksCount)),
+		strconv.Itoa(int(cluster.ActiveServicesCount)),
+		aws.ToString(task.TaskArn),
+		aws.ToString(task.LastStatus),
+		aws.ToString(task.DesiredStatus),
+		aws.ToString(task.TaskDefinitionArn),
+		aws.ToString(container.Name),
+		aws.ToString(container.Image),
+		aws.ToString(container.LastStatus),
+		aws.ToString(container.RuntimeId),
+		hostPort,
+		containerPort,
+		protocol,
+		privateIP,
+		timestamp,
+	}
+
+	csvData = append(csvData, row)
+}
+
+// writeCSVToFile writes the CSV data to a file
+func writeCSVToFile() error {
+	fmt.Println("🔍 Request: Write Container Data to CSV")
+	fmt.Println("📞 SDK Function: csv.NewWriter() + writer.WriteAll()")
+	fmt.Println("⏳ Writing container data to containers.csv...")
+
+	file, err := os.Create("containers.csv")
+	if err != nil {
+		errorMsg := fmt.Sprintf("❌ Failed to create CSV file: %v", err)
+		fmt.Println(errorMsg)
+		logToFile("Write CSV File", "os.Create()", "ERROR", errorMsg)
+		return err
+	}
+
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			errorMsg := fmt.Sprintf("❌ Error closing CSV file: %v", closeErr)
+			fmt.Println(errorMsg)
+			logToFile("Write CSV File", "file.Close()", "ERROR", errorMsg)
+		}
+	}()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	err = writer.WriteAll(csvData)
+	if err != nil {
+		errorMsg := fmt.Sprintf("❌ Failed to write CSV data: %v", err)
+		fmt.Println(errorMsg)
+		logToFile("Write CSV File", "csv.Writer.WriteAll()", "ERROR", errorMsg)
+		return err
+	}
+
+	// Force write to disk
+	if err := file.Sync(); err != nil {
+		errorMsg := fmt.Sprintf("⚠️ Warning: Failed to sync CSV file to disk: %v", err)
+		fmt.Println(errorMsg)
+		logToFile("Write CSV File", "file.Sync()", "WARNING", errorMsg)
+	}
+
+	successMsg := fmt.Sprintf("✅ Container data written to containers.csv (%d rows including header)", len(csvData))
+	fmt.Println(successMsg)
+	logToFile("Write CSV File", "writeCSVToFile()", "SUCCESS",
+		fmt.Sprintf("Written %d container records to CSV", len(csvData)-1))
+
+	return nil
+}
+
 func main() {
 	// Create a context
 	ctx := context.TODO()
+
+	// Initialize CSV data structure
+	initializeCSV()
+	fmt.Println("📊 CSV data structure initialized")
 
 	// Load AWS configuration using AssumeRole with TARGET_ROLE_ARN
 	fmt.Println("🔍 Request: Load AWS Configuration with AssumeRole")
@@ -75,6 +211,12 @@ func main() {
 	// Write configuration and all operation logs to file
 	fmt.Println("\n==================================================")
 	writeConfigToFile(cfg.Region)
+
+	// Write container data to CSV file
+	fmt.Println("\n==================================================")
+	if err := writeCSVToFile(); err != nil {
+		fmt.Printf("⚠️ CSV export failed: %v\n", err)
+	}
 
 	fmt.Println("\n🎉 AWS SDK v2 setup completed successfully!")
 }
@@ -193,7 +335,9 @@ func describeTasks(client *ecs.Client, clusterArn string, taskArns []string) ([]
 	return output.Tasks, nil
 }
 
-func listContainersInCluster(client *ecs.Client, clusterArn, clusterName string) error {
+func listContainersInCluster(client *ecs.Client, cluster *ecsTypes.Cluster) error {
+	clusterArn := aws.ToString(cluster.ClusterArn)
+	clusterName := aws.ToString(cluster.ClusterName)
 	fmt.Printf("     🔍 Listing containers in cluster: %s\n", clusterName)
 
 	// Get tasks in the cluster
@@ -291,6 +435,9 @@ func listContainersInCluster(client *ecs.Client, clusterArn, clusterName string)
 				aws.ToString(container.LastStatus),
 				aws.ToString(task.TaskArn))
 			containerDetails = append(containerDetails, containerDetailStr)
+
+			// Add container data to CSV
+			addContainerToCSV(cluster, &task, &container)
 		}
 		fmt.Printf("\n")
 	}
@@ -410,7 +557,7 @@ func listECSClusters(ctx context.Context, client *ecs.Client) error {
 
 		// List containers in this cluster
 		fmt.Printf("\n")
-		if err := listContainersInCluster(client, clusterArn, aws.ToString(cluster.ClusterName)); err != nil {
+		if err := listContainersInCluster(client, cluster); err != nil {
 			fmt.Printf("     ⚠️ Failed to list containers in cluster %s: %v\n", aws.ToString(cluster.ClusterName), err)
 		}
 	}

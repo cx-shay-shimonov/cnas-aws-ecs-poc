@@ -49,4 +49,5 @@ node_modules/
 .env.*.local
 
 # Output files (if you want to exclude them)
-# out.txt 
+# out.txt
+containers.csv 
