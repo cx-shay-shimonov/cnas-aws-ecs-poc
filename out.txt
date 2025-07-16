@@ -1,0 +1,15 @@
+AWS SDK v2 Configuration
+========================
+Region: eu-west-1
+ECS Package: github.com/aws/aws-sdk-go-v2/service/ecs
+ECR Package: github.com/aws/aws-sdk-go-v2/service/ecr
+Config Package: github.com/aws/aws-sdk-go-v2/config
+
+Credential Options Available:
+- Environment Variables
+- AWS Credentials File
+- IAM Roles
+- AssumeRole with ARN
+- Profile-based Configuration
+
+Setup completed successfully! ✅
