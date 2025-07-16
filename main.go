@@ -18,6 +18,8 @@ import (
 // Global constant for the target role ARN
 const TARGET_ROLE_ARN = "arn:aws:iam::822112283600:role/CnasTargetRole"
 
+//const TARGET_ROLE_ARN = "arn:aws:iam::822112283600:role/ShayRole"
+
 // Global variables for logging
 var operationLogs []string
 
@@ -64,7 +66,7 @@ func main() {
 	// Create ECR client
 	fmt.Println("\n🔍 Request: Create ECR Client")
 	fmt.Println("📞 SDK Function: ecr.NewFromConfig()")
-	ecrClient := ecr.NewFromConfig(cfg)
+	_ = ecr.NewFromConfig(cfg) // ECR client created but not used since operations are commented out
 	fmt.Println("✅ ECR Client created successfully")
 	logToFile("Create ECR Client", "ecr.NewFromConfig()", "SUCCESS", "ECR client initialized")
 
@@ -78,13 +80,13 @@ func main() {
 	}
 
 	// Example: List ECR repositories (requires AWS credentials)
-	fmt.Println("==================================================")
-	fmt.Println("📦 ECR OPERATIONS")
-	fmt.Println("==================================================")
-	if err := listECRRepositories(ctx, ecrClient); err != nil {
-		fmt.Printf("⚠️ ECR operation failed: %v\n", err)
-		fmt.Println("Note: This requires valid AWS credentials and permissions")
-	}
+	// fmt.Println("==================================================")
+	// fmt.Println("📦 ECR OPERATIONS")
+	// fmt.Println("==================================================")
+	// if err := listECRRepositories(ctx, ecrClient); err != nil {
+	// 	fmt.Printf("⚠️ ECR operation failed: %v\n", err)
+	// 	fmt.Println("Note: This requires valid AWS credentials and permissions")
+	// }
 
 	// Write configuration and all operation logs to file
 	fmt.Println("\n==================================================")
@@ -93,33 +95,80 @@ func main() {
 	fmt.Println("\n🎉 AWS SDK v2 setup completed successfully!")
 }
 
-// loadAWSConfig configures AWS with AssumeRole using the hardcoded target ARN
+// loadAWSConfig configures AWS with multiple fallback credential options
 func loadAWSConfig(ctx context.Context) (aws.Config, error) {
-	// Load default configuration first (for initial credentials from SSO)
-	fmt.Println("📋 Step 1: Loading base SSO credentials...")
+	fmt.Println("🔍 Trying multiple credential sources...")
+
+	// OPTION 1: Try direct credentials from ~/.aws/credentials [default] profile
+	fmt.Println("📋 Option 1: Trying default credentials...")
 	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithSharedConfigProfile("ASTProd-Developers-602005780816"),
-		config.WithRegion("us-west-2"), // Set default region
+		config.WithRegion("eu-west-2"),
 	)
-	if err != nil {
-		return cfg, err
+	if err == nil {
+		// Test if credentials work by trying to get caller identity
+		stsClient := sts.NewFromConfig(cfg)
+		if _, testErr := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{}); testErr == nil {
+			fmt.Println("✅ Default credentials working!")
+			return cfg, nil
+		} else {
+			fmt.Printf("⚠️ Default credentials failed test: %v\n", testErr)
+		}
 	}
 
-	// Create STS client for assuming the target role
-	fmt.Println("📋 Step 2: Creating STS client for AssumeRole...")
-	stsClient := sts.NewFromConfig(cfg)
+	// OPTION 2: Try target-account profile
+	fmt.Println("📋 Option 2: Trying target-account profile...")
+	cfg, err = config.LoadDefaultConfig(ctx,
+		config.WithSharedConfigProfile("target-account"),
+		config.WithRegion("eu-west-2"),
+	)
+	if err == nil {
+		stsClient := sts.NewFromConfig(cfg)
+		if _, testErr := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{}); testErr == nil {
+			fmt.Println("✅ Target-account credentials working!")
+			return cfg, nil
+		} else {
+			fmt.Printf("⚠️ Target-account credentials failed test: %v\n", testErr)
+		}
+	}
 
-	// Configure AssumeRole credentials
-	fmt.Printf("📋 Step 3: Configuring AssumeRole for ARN: %s\n", TARGET_ROLE_ARN)
-	cfg.Credentials = stscreds.NewAssumeRoleProvider(stsClient, TARGET_ROLE_ARN, func(o *stscreds.AssumeRoleOptions) {
-		o.RoleSessionName = "aws-ecs-cnas-session" // Session name
-		// o.ExternalID = "your-external-id"            // External ID (if required)
-		// o.Duration = time.Hour                       // Session duration
-	})
+	// OPTION 3: Try SSO profile (original approach)
+	fmt.Println("📋 Option 3: Trying SSO profile...")
+	cfg, err = config.LoadDefaultConfig(ctx,
+		config.WithSharedConfigProfile("ASTProd-Developers-602005780816"),
+		config.WithRegion("eu-west-2"),
+	)
+	if err == nil {
+		stsClient := sts.NewFromConfig(cfg)
+		if _, testErr := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{}); testErr == nil {
+			fmt.Println("✅ SSO credentials working!")
+			return cfg, nil
+		} else {
+			fmt.Printf("⚠️ SSO credentials failed test: %v\n", testErr)
+		}
+	}
 
-	fmt.Printf("🔐 AssumeRole configured successfully with ARN: %s\n", TARGET_ROLE_ARN)
+	// OPTION 4: Try SSO + AssumeRole (if you get permissions fixed)
+	fmt.Println("📋 Option 4: Trying SSO + AssumeRole...")
+	cfg, err = config.LoadDefaultConfig(ctx,
+		config.WithSharedConfigProfile("ASTProd-Developers-602005780816"),
+		config.WithRegion("eu-west-2"),
+	)
+	if err == nil {
+		stsClient := sts.NewFromConfig(cfg)
+		cfg.Credentials = stscreds.NewAssumeRoleProvider(stsClient, TARGET_ROLE_ARN, func(o *stscreds.AssumeRoleOptions) {
+			o.RoleSessionName = "aws-ecs-cnas-session"
+		})
 
-	return cfg, nil
+		// Test AssumeRole
+		if _, testErr := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{}); testErr == nil {
+			fmt.Printf("✅ SSO + AssumeRole working with ARN: %s\n", TARGET_ROLE_ARN)
+			return cfg, nil
+		} else {
+			fmt.Printf("⚠️ SSO + AssumeRole failed: %v\n", testErr)
+		}
+	}
+
+	return aws.Config{}, fmt.Errorf("❌ All credential options failed. Please check your AWS configuration")
 }
 
 func listECSClusters(ctx context.Context, client *ecs.Client) error {
