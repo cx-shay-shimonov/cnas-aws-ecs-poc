@@ -18,6 +18,7 @@ import (
 
 // Global constant for the target role ARN
 const TARGET_ROLE_ARN = "arn:aws:iam::822112283600:role/CnasTargetRole"
+const REGION = "eu-west-2"
 
 // Global variables for logging
 var operationLogs []string
@@ -100,7 +101,7 @@ func loadAWSConfig(ctx context.Context) (aws.Config, error) {
 	// Load default configuration first (for initial credentials from SSO)
 	fmt.Println("📋 Step 1: Loading base SSO credentials...")
 	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion("eu-west-2"),
+		config.WithRegion(REGION),
 	)
 	if err == nil {
 		// Test if credentials work by trying to get caller identity
@@ -117,7 +118,7 @@ func loadAWSConfig(ctx context.Context) (aws.Config, error) {
 	fmt.Println("📋 Option 2: Trying target-account profile...")
 	cfg, err = config.LoadDefaultConfig(ctx,
 		config.WithSharedConfigProfile("target-account"),
-		config.WithRegion("eu-west-2"),
+		config.WithRegion(REGION),
 	)
 	if err == nil {
 		stsClient := sts.NewFromConfig(cfg)
@@ -133,7 +134,7 @@ func loadAWSConfig(ctx context.Context) (aws.Config, error) {
 	fmt.Println("📋 Option 3: Trying SSO profile...")
 	cfg, err = config.LoadDefaultConfig(ctx,
 		config.WithSharedConfigProfile("ASTProd-Developers-602005780816"),
-		config.WithRegion("eu-west-2"),
+		config.WithRegion(REGION),
 	)
 	if err == nil {
 		stsClient := sts.NewFromConfig(cfg)
@@ -149,7 +150,7 @@ func loadAWSConfig(ctx context.Context) (aws.Config, error) {
 	fmt.Println("📋 Option 4: Trying SSO + AssumeRole...")
 	cfg, err = config.LoadDefaultConfig(ctx,
 		config.WithSharedConfigProfile("ASTProd-Developers-602005780816"),
-		config.WithRegion("eu-west-2"),
+		config.WithRegion(REGION),
 	)
 	if err == nil {
 		stsClient := sts.NewFromConfig(cfg)
