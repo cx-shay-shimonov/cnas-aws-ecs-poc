@@ -66,7 +66,8 @@ func main() {
 	// Create ECR client
 	fmt.Println("\n🔍 Request: Create ECR Client")
 	fmt.Println("📞 SDK Function: ecr.NewFromConfig()")
-	_ = ecr.NewFromConfig(cfg) // ECR client created but not used since operations are commented out
+
+	ecrClient := ecr.NewFromConfig(cfg) // ECR client created but not used since operations are commented out
 	fmt.Println("✅ ECR Client created successfully")
 	logToFile("Create ECR Client", "ecr.NewFromConfig()", "SUCCESS", "ECR client initialized")
 
@@ -80,13 +81,13 @@ func main() {
 	}
 
 	// Example: List ECR repositories (requires AWS credentials)
-	// fmt.Println("==================================================")
-	// fmt.Println("📦 ECR OPERATIONS")
-	// fmt.Println("==================================================")
-	// if err := listECRRepositories(ctx, ecrClient); err != nil {
-	// 	fmt.Printf("⚠️ ECR operation failed: %v\n", err)
-	// 	fmt.Println("Note: This requires valid AWS credentials and permissions")
-	// }
+	fmt.Println("==================================================")
+	fmt.Println("📦 ECR OPERATIONS")
+	fmt.Println("==================================================")
+	if err := listECRRepositories(ctx, ecrClient); err != nil {
+		fmt.Printf("⚠️ ECR operation failed: %v\n", err)
+		fmt.Println("Note: This requires valid AWS credentials and permissions")
+	}
 
 	// Write configuration and all operation logs to file
 	fmt.Println("\n==================================================")

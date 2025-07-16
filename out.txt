@@ -1,6 +1,6 @@
 AWS SDK v2 Configuration & Operation Log
 =========================================
-Generated: 2025-07-16 12:51:37
+Generated: 2025-07-16 15:27:37
 
 CONFIGURATION:
 --------------
@@ -21,9 +21,10 @@ CREDENTIAL OPTIONS:
 
 OPERATION LOGS:
 ---------------
-[2025-07-16 12:51:37] SUCCESS | Load AWS Configuration | loadAWSConfig() | AWS Configuration loaded with AssumeRole: arn:aws:iam::822112283600:role/CnasTargetRole
-[2025-07-16 12:51:37] SUCCESS | Create ECS Client | ecs.NewFromConfig() | ECS client initialized
-[2025-07-16 12:51:37] SUCCESS | Create ECR Client | ecr.NewFromConfig() | ECR client initialized
-[2025-07-16 12:51:37] ERROR | List ECS Clusters | ecs.Client.ListClusters() | ❌ List ECS Clusters failed: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 53f6cc43-b2b8-4c6a-a7c2-3d65d36cb0d8, api error AccessDeniedException: User: arn:aws:sts::602005780816:assumed-role/AWSReservedSSO_ASTProd-Developers_dd53a32b492bbc13/Shay.Shimonov@checkmarx.com is not authorized to perform: ecs:ListClusters on resource: * with an explicit deny in a service control policy
+[2025-07-16 15:27:36] SUCCESS | Load AWS Configuration | loadAWSConfig() | AWS Configuration loaded with AssumeRole: arn:aws:iam::822112283600:role/CnasTargetRole
+[2025-07-16 15:27:36] SUCCESS | Create ECS Client | ecs.NewFromConfig() | ECS client initialized
+[2025-07-16 15:27:36] SUCCESS | Create ECR Client | ecr.NewFromConfig() | ECR client initialized
+[2025-07-16 15:27:36] SUCCESS | List ECS Clusters | ecs.Client.ListClusters() | Found 1 clusters: [  1. arn:aws:ecs:eu-west-2:822112283600:cluster/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2]
+[2025-07-16 15:27:37] SUCCESS | List ECR Repositories | ecr.Client.DescribeRepositories() | Found 1 repositories: [  1. demo-php/php-demo-service (URI: 822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service)]
 
 Setup completed successfully! ✅
