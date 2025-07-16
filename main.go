@@ -18,8 +18,6 @@ import (
 // Global constant for the target role ARN
 const TARGET_ROLE_ARN = "arn:aws:iam::822112283600:role/CnasTargetRole"
 
-//const TARGET_ROLE_ARN = "arn:aws:iam::822112283600:role/ShayRole"
-
 // Global variables for logging
 var operationLogs []string
 
@@ -96,12 +94,10 @@ func main() {
 	fmt.Println("\n🎉 AWS SDK v2 setup completed successfully!")
 }
 
-// loadAWSConfig configures AWS with multiple fallback credential options
+// loadAWSConfig configures AWS with AssumeRole using the hardcoded target ARN
 func loadAWSConfig(ctx context.Context) (aws.Config, error) {
-	fmt.Println("🔍 Trying multiple credential sources...")
-
-	// OPTION 1: Try direct credentials from ~/.aws/credentials [default] profile
-	fmt.Println("📋 Option 1: Trying default credentials...")
+	// Load default configuration first (for initial credentials from SSO)
+	fmt.Println("📋 Step 1: Loading base SSO credentials...")
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("eu-west-2"),
 	)
