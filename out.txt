@@ -1,15 +1,30 @@
-AWS SDK v2 Configuration
-========================
-Region: eu-west-1
+AWS SDK v2 Configuration & Operation Log
+=========================================
+Generated: 2025-07-16 10:56:01
+
+CONFIGURATION:
+--------------
+Region: us-west-2
 ECS Package: github.com/aws/aws-sdk-go-v2/service/ecs
 ECR Package: github.com/aws/aws-sdk-go-v2/service/ecr
 Config Package: github.com/aws/aws-sdk-go-v2/config
+Profile: ASTProd-Developers-602005780816
+AssumeRole ARN: arn:aws:iam::822112283600:role/CnasTargetRole
 
-Credential Options Available:
+CREDENTIAL OPTIONS:
+-------------------
 - Environment Variables
 - AWS Credentials File
 - IAM Roles
 - AssumeRole with ARN
 - Profile-based Configuration
+
+OPERATION LOGS:
+---------------
+[2025-07-16 10:55:59] SUCCESS | Load AWS Configuration | loadAWSConfig() | AWS Configuration loaded with AssumeRole: arn:aws:iam::822112283600:role/CnasTargetRole
+[2025-07-16 10:55:59] SUCCESS | Create ECS Client | ecs.NewFromConfig() | ECS client initialized
+[2025-07-16 10:55:59] SUCCESS | Create ECR Client | ecr.NewFromConfig() | ECR client initialized
+[2025-07-16 10:56:00] ERROR | List ECS Clusters | ecs.Client.ListClusters() | ❌ List ECS Clusters failed: operation error ECS: ListClusters, get identity: get credentials: operation error STS: AssumeRole, https response error StatusCode: 403, RequestID: 492c0798-99ce-453a-96d9-d31c9458db4b, api error AccessDenied: User: arn:aws:sts::602005780816:assumed-role/AWSReservedSSO_ASTProd-Developers_dd53a32b492bbc13/Shay.Shimonov@checkmarx.com is not authorized to perform: sts:AssumeRole on resource: arn:aws:iam::822112283600:role/CnasTargetRole
+[2025-07-16 10:56:01] ERROR | List ECR Repositories | ecr.Client.DescribeRepositories() | ❌ List ECR Repositories failed: operation error ECR: DescribeRepositories, get identity: get credentials: operation error STS: AssumeRole, https response error StatusCode: 403, RequestID: 3c3ab5fe-bcf0-4129-9f68-e81965279934, api error AccessDenied: User: arn:aws:sts::602005780816:assumed-role/AWSReservedSSO_ASTProd-Developers_dd53a32b492bbc13/Shay.Shimonov@checkmarx.com is not authorized to perform: sts:AssumeRole on resource: arn:aws:iam::822112283600:role/CnasTargetRole
 
 Setup completed successfully! ✅
