@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
-	"github.com/aws/aws-sdk-go-v2/service/ecr"
+
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	ecsTypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -63,29 +63,12 @@ func main() {
 	fmt.Println("✅ ECS Client created successfully")
 	logToFile("Create ECS Client", "ecs.NewFromConfig()", "SUCCESS", "ECS client initialized")
 
-	// Create ECR client
-	fmt.Println("\n🔍 Request: Create ECR Client")
-	fmt.Println("📞 SDK Function: ecr.NewFromConfig()")
-
-	ecrClient := ecr.NewFromConfig(cfg) // ECR client created but not used since operations are commented out
-	fmt.Println("✅ ECR Client created successfully")
-	logToFile("Create ECR Client", "ecr.NewFromConfig()", "SUCCESS", "ECR client initialized")
-
 	// Example: List ECS clusters (requires AWS credentials)
 	fmt.Println("\n==================================================")
 	fmt.Println("🐳 ECS OPERATIONS")
 	fmt.Println("==================================================")
 	if err := listECSClusters(ctx, ecsClient); err != nil {
 		fmt.Printf("⚠️ ECS operation failed: %v\n", err)
-		fmt.Println("Note: This requires valid AWS credentials and permissions")
-	}
-
-	// Example: List ECR repositories (requires AWS credentials)
-	fmt.Println("==================================================")
-	fmt.Println("📦 ECR OPERATIONS")
-	fmt.Println("==================================================")
-	if err := listECRRepositories(ctx, ecrClient); err != nil {
-		fmt.Printf("⚠️ ECR operation failed: %v\n", err)
 		fmt.Println("Note: This requires valid AWS credentials and permissions")
 	}
 
@@ -440,50 +423,6 @@ func listECSClusters(ctx context.Context, client *ecs.Client) error {
 	return nil
 }
 
-func listECRRepositories(ctx context.Context, client *ecr.Client) error {
-	// Print detailed request information
-	requestName := "List ECR Repositories"
-	sdkFunction := "ecr.Client.DescribeRepositories()"
-
-	fmt.Printf("🔍 Request: %s\n", requestName)
-	fmt.Printf("📞 SDK Function: %s\n", sdkFunction)
-	fmt.Println("⏳ Executing request...")
-
-	input := &ecr.DescribeRepositoriesInput{
-		MaxResults: &[]int32{10}[0], // List up to 10 repositories
-	}
-
-	result, err := client.DescribeRepositories(ctx, input)
-	if err != nil {
-		errorMsg := fmt.Sprintf("❌ %s failed: %v", requestName, err)
-		fmt.Println(errorMsg)
-
-		// Log to output file
-		logToFile(requestName, sdkFunction, "ERROR", errorMsg)
-
-		return fmt.Errorf("failed to list ECR repositories: %w", err)
-	}
-
-	// Success - print results
-	resultMsg := fmt.Sprintf("✅ %s completed successfully", requestName)
-	fmt.Println(resultMsg)
-	fmt.Printf("📊 Found %d ECR repositories:\n", len(result.Repositories))
-
-	var repoDetails []string
-	for i, repo := range result.Repositories {
-		detail := fmt.Sprintf("  %d. %s (URI: %s)", i+1, *repo.RepositoryName, *repo.RepositoryUri)
-		fmt.Println(detail)
-		repoDetails = append(repoDetails, detail)
-	}
-
-	// Log to output file
-	resultData := fmt.Sprintf("Found %d repositories: %v", len(result.Repositories), repoDetails)
-	logToFile(requestName, sdkFunction, "SUCCESS", resultData)
-
-	fmt.Println()
-	return nil
-}
-
 func writeConfigToFile(region string) {
 	// Log the file writing operation
 	fmt.Println("🔍 Request: Write Configuration to File")
@@ -516,7 +455,6 @@ func writeConfigToFile(region string) {
 	content += fmt.Sprintf("--------------\n")
 	content += fmt.Sprintf("Region: %s\n", region)
 	content += fmt.Sprintf("ECS Package: github.com/aws/aws-sdk-go-v2/service/ecs\n")
-	content += fmt.Sprintf("ECR Package: github.com/aws/aws-sdk-go-v2/service/ecr\n")
 	content += fmt.Sprintf("Config Package: github.com/aws/aws-sdk-go-v2/config\n")
 	content += fmt.Sprintf("Profile: ASTProd-Developers-602005780816\n")
 	content += fmt.Sprintf("AssumeRole ARN: %s\n", TARGET_ROLE_ARN)

@@ -1,12 +1,11 @@
 AWS SDK v2 Configuration & Operation Log
 =========================================
-Generated: 2025-07-16 16:10:20
+Generated: 2025-07-16 17:19:47
 
 CONFIGURATION:
 --------------
 Region: eu-west-2
 ECS Package: github.com/aws/aws-sdk-go-v2/service/ecs
-ECR Package: github.com/aws/aws-sdk-go-v2/service/ecr
 Config Package: github.com/aws/aws-sdk-go-v2/config
 Profile: ASTProd-Developers-602005780816
 AssumeRole ARN: arn:aws:iam::822112283600:role/CnasTargetRole
@@ -21,15 +20,13 @@ CREDENTIAL OPTIONS:
 
 OPERATION LOGS:
 ---------------
-[2025-07-16 16:10:19] SUCCESS | Load AWS Configuration | loadAWSConfig() | AWS Configuration loaded with AssumeRole: arn:aws:iam::822112283600:role/CnasTargetRole
-[2025-07-16 16:10:19] SUCCESS | Create ECS Client | ecs.NewFromConfig() | ECS client initialized
-[2025-07-16 16:10:19] SUCCESS | Create ECR Client | ecr.NewFromConfig() | ECR client initialized
-[2025-07-16 16:10:19] SUCCESS | Describe ECS Cluster | ecs.Client.DescribeClusters() | Cluster: demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2 | Status: ACTIVE | Running: 1 | Pending: 0 | Services: 1 | Instances: 0
-[2025-07-16 16:10:19] SUCCESS | List Tasks | ecs.Client.ListTasks() | Found 1 tasks in cluster demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2
-[2025-07-16 16:10:19] SUCCESS | List Containers | listContainersInCluster() | Found 2 containers across 1 tasks in cluster demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2
-[2025-07-16 16:10:19] INFO | Container Details | ecs.Container | Container: ecs-service-connect-o3DQRY | Image:  | Status: RUNNING | Task: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/3526ce40652543a9aad8830b0eb48b39
-[2025-07-16 16:10:19] INFO | Container Details | ecs.Container | Container: php-demo-service | Image: 822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a | Status: RUNNING | Task: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/3526ce40652543a9aad8830b0eb48b39
-[2025-07-16 16:10:19] SUCCESS | List ECS Clusters | ecs.Client.ListClusters() | Found 1 clusters with details: [Cluster 1: arn:aws:ecs:eu-west-2:822112283600:cluster/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2   Cluster: demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2 | Status: ACTIVE | Running: 1 | Pending: 0 | Services: 1 | Instances: 0]
-[2025-07-16 16:10:20] SUCCESS | List ECR Repositories | ecr.Client.DescribeRepositories() | Found 1 repositories: [  1. demo-php/php-demo-service (URI: 822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service)]
+[2025-07-16 17:19:47] SUCCESS | Load AWS Configuration | loadAWSConfig() | AWS Configuration loaded with AssumeRole: arn:aws:iam::822112283600:role/CnasTargetRole
+[2025-07-16 17:19:47] SUCCESS | Create ECS Client | ecs.NewFromConfig() | ECS client initialized
+[2025-07-16 17:19:47] SUCCESS | Describe ECS Cluster | ecs.Client.DescribeClusters() | Cluster: demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2 | Status: ACTIVE | Running: 1 | Pending: 0 | Services: 1 | Instances: 0
+[2025-07-16 17:19:47] SUCCESS | List Tasks | ecs.Client.ListTasks() | Found 1 tasks in cluster demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2
+[2025-07-16 17:19:47] SUCCESS | List Containers | listContainersInCluster() | Found 2 containers across 1 tasks in cluster demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2
+[2025-07-16 17:19:47] INFO | Container Details | ecs.Container | Container: ecs-service-connect-o3DQRY | Image:  | Status: RUNNING | Task: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/3526ce40652543a9aad8830b0eb48b39
+[2025-07-16 17:19:47] INFO | Container Details | ecs.Container | Container: php-demo-service | Image: 822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a | Status: RUNNING | Task: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/3526ce40652543a9aad8830b0eb48b39
+[2025-07-16 17:19:47] SUCCESS | List ECS Clusters | ecs.Client.ListClusters() | Found 1 clusters with details: [Cluster 1: arn:aws:ecs:eu-west-2:822112283600:cluster/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2   Cluster: demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2 | Status: ACTIVE | Running: 1 | Pending: 0 | Services: 1 | Instances: 0]
 
 Setup completed successfully! ✅

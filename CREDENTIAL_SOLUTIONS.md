@@ -76,5 +76,5 @@ The enhanced `loadAWSConfig()` function tries all options automatically:
 If you get credential errors:
 1. Check `aws sts get-caller-identity` 
 2. Verify `aws sso login --profile [your-profile]`
-3. Confirm IAM permissions for ECS/ECR
+3. Confirm IAM permissions for ECS
 4. Test with environment variables as backup 

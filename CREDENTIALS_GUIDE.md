@@ -21,7 +21,7 @@ import (
 func loadAWSConfig(ctx context.Context) (config.Config, error) {
     // Load default config first
     cfg, err := config.LoadDefaultConfig(ctx,
-        config.WithRegion("us-west-2"),
+        config.WithRegion("eu-west-1"),
     )
     if err != nil {
         return cfg, err
@@ -58,7 +58,7 @@ export AWS_ROLE_ARN="arn:aws:iam::123456789012:role/YourRoleName"
 roleArn := os.Getenv("AWS_ROLE_ARN")
 if roleArn != "" {
     cfg, err := config.LoadDefaultConfig(ctx,
-        config.WithRegion("us-west-2"),
+        config.WithRegion("eu-west-1"),
     )
     if err != nil {
         return cfg, err
@@ -85,7 +85,7 @@ cfg, err := config.LoadDefaultConfig(ctx,
         "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", // 🔴 Your secret key
         "",                        // Session token (leave empty)
     )),
-    config.WithRegion("us-west-2"),
+    config.WithRegion("eu-west-1"),
 )
 ```
 
@@ -103,7 +103,7 @@ Replace the current simple configuration in `main()` function:
 ```go
 // CURRENT CODE (line ~16 in main.go):
 cfg, err := config.LoadDefaultConfig(ctx,
-    config.WithRegion("us-west-2"),
+    config.WithRegion("eu-west-1"),
 )
 
 // REPLACE WITH:
@@ -154,7 +154,7 @@ go run main.go
 
 **Success indicators:**
 - ✅ "ECS Client created successfully"
-- ✅ "ECR Client created successfully"
+- ✅ "ECS Client created successfully"
 - ✅ No credential errors (if properly configured)
 
 **If you see credential errors:**
