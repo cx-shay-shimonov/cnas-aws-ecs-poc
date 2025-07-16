@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
@@ -168,6 +169,19 @@ func loadAWSConfig(ctx context.Context) (aws.Config, error) {
 	return aws.Config{}, fmt.Errorf("❌ All credential options failed. Please check your AWS configuration")
 }
 
+func DescribeCluster(client *ecs.Client, clusterArn string) (*types.Cluster, error) {
+	resp, err := client.DescribeClusters(context.TODO(), &ecs.DescribeClustersInput{
+		Clusters: []string{clusterArn},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Clusters) > 0 {
+		return &resp.Clusters[0], nil
+	}
+	return nil, nil
+}
+
 func listECSClusters(ctx context.Context, client *ecs.Client) error {
 	// Print detailed request information
 	requestName := "List ECS Clusters"
@@ -199,13 +213,76 @@ func listECSClusters(ctx context.Context, client *ecs.Client) error {
 
 	var clusterDetails []string
 	for i, clusterArn := range result.ClusterArns {
-		detail := fmt.Sprintf("  %d. %s", i+1, clusterArn)
-		fmt.Println(detail)
-		clusterDetails = append(clusterDetails, detail)
+		fmt.Printf("\n  %d. %s\n", i+1, clusterArn)
+		clusterDetails = append(clusterDetails, fmt.Sprintf("Cluster %d: %s", i+1, clusterArn))
+
+		// Describe each cluster
+		fmt.Printf("     🔍 Describing cluster details...\n")
+
+		cluster, err := DescribeCluster(client, clusterArn)
+		if err != nil {
+			errorMsg := fmt.Sprintf("     ❌ Failed to describe cluster %s: %v", clusterArn, err)
+			fmt.Println(errorMsg)
+			logToFile("Describe ECS Cluster", "ecs.Client.DescribeClusters()", "ERROR", errorMsg)
+			clusterDetails = append(clusterDetails, fmt.Sprintf("  Description failed: %v", err))
+			continue
+		}
+
+		if cluster == nil {
+			noDataMsg := "     ⚠️ No cluster data returned"
+			fmt.Println(noDataMsg)
+			clusterDetails = append(clusterDetails, "  No cluster data returned")
+			continue
+		}
+
+		// Print cluster details to terminal
+		fmt.Printf("     ✅ Cluster Description:\n")
+		fmt.Printf("        Name: %s\n", aws.ToString(cluster.ClusterName))
+		fmt.Printf("        ARN: %s\n", aws.ToString(cluster.ClusterArn))
+		fmt.Printf("        Status: %s\n", aws.ToString(cluster.Status))
+		fmt.Printf("        Running Tasks: %d\n", cluster.RunningTasksCount)
+		fmt.Printf("        Pending Tasks: %d\n", cluster.PendingTasksCount)
+		fmt.Printf("        Active Services: %d\n", cluster.ActiveServicesCount)
+		fmt.Printf("        Registered Container Instances: %d\n", cluster.RegisteredContainerInstancesCount)
+
+		if cluster.CapacityProviders != nil && len(cluster.CapacityProviders) > 0 {
+			fmt.Printf("        Capacity Providers: %v\n", cluster.CapacityProviders)
+		}
+
+		if cluster.DefaultCapacityProviderStrategy != nil && len(cluster.DefaultCapacityProviderStrategy) > 0 {
+			fmt.Printf("        Default Capacity Provider Strategy:\n")
+			for _, strategy := range cluster.DefaultCapacityProviderStrategy {
+				fmt.Printf("          - Provider: %s, Weight: %d, Base: %d\n",
+					aws.ToString(strategy.CapacityProvider),
+					strategy.Weight,
+					strategy.Base)
+			}
+		}
+
+		if cluster.Tags != nil && len(cluster.Tags) > 0 {
+			fmt.Printf("        Tags:\n")
+			for _, tag := range cluster.Tags {
+				fmt.Printf("          - %s: %s\n", aws.ToString(tag.Key), aws.ToString(tag.Value))
+			}
+		}
+
+		// Add detailed cluster info to output log
+		clusterDetailStr := fmt.Sprintf("Cluster: %s | Status: %s | Running: %d | Pending: %d | Services: %d | Instances: %d",
+			aws.ToString(cluster.ClusterName),
+			aws.ToString(cluster.Status),
+			cluster.RunningTasksCount,
+			cluster.PendingTasksCount,
+			cluster.ActiveServicesCount,
+			cluster.RegisteredContainerInstancesCount)
+
+		clusterDetails = append(clusterDetails, fmt.Sprintf("  %s", clusterDetailStr))
+
+		// Log successful cluster description
+		logToFile("Describe ECS Cluster", "ecs.Client.DescribeClusters()", "SUCCESS", clusterDetailStr)
 	}
 
 	// Log to output file
-	resultData := fmt.Sprintf("Found %d clusters: %v", len(result.ClusterArns), clusterDetails)
+	resultData := fmt.Sprintf("Found %d clusters with details: %v", len(result.ClusterArns), clusterDetails)
 	logToFile(requestName, sdkFunction, "SUCCESS", resultData)
 
 	fmt.Println()
