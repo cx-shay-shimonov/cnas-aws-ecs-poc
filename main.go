@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -25,6 +26,23 @@ const REGION = "eu-west-2"
 // Global variables for logging
 var operationLogs []string
 var csvData [][]string
+var jsonContainers []ContainerData
+
+// ContainerData represents a container with its cluster context for JSON export
+type ContainerData struct {
+	Cluster       string `json:"cluster"`
+	ContainerName string `json:"container_name"`
+	Image         string `json:"image"`
+	Status        string `json:"status"`
+	RuntimeID     string `json:"runtime_id,omitempty"`
+	TaskARN       string `json:"task_arn"`
+	TaskStatus    string `json:"task_status"`
+	HostPort      int    `json:"host_port,omitempty"`
+	ContainerPort int    `json:"container_port,omitempty"`
+	Protocol      string `json:"protocol,omitempty"`
+	PrivateIP     string `json:"private_ip,omitempty"`
+	Timestamp     string `json:"timestamp"`
+}
 
 // logToFile logs operation details to the global log slice
 func logToFile(requestName, sdkFunction, status, details string) {
@@ -37,24 +55,17 @@ func logToFile(requestName, sdkFunction, status, details string) {
 // initializeCSV initializes the CSV data with headers
 func initializeCSV() {
 	headers := []string{
-		"Cluster_Name",
-		"Cluster_ARN",
-		"Cluster_Status",
-		"Cluster_Running_Tasks",
-		"Cluster_Pending_Tasks",
-		"Cluster_Active_Services",
+		"Cluster",
+		"Container_Name",
+		"Image",
+		"Status",
+		"Runtime_ID",
 		"Task_ARN",
 		"Task_Status",
-		"Task_Desired_Status",
-		"Task_Definition_ARN",
-		"Container_Name",
-		"Container_Image",
-		"Container_Status",
-		"Container_Runtime_ID",
 		"Host_Port",
 		"Container_Port",
 		"Protocol",
-		"Private_IP_Address",
+		"Private_IP",
 		"Timestamp",
 	}
 	csvData = append(csvData, headers)
@@ -92,19 +103,12 @@ func addContainerToCSV(cluster *ecsTypes.Cluster, task *ecsTypes.Task, container
 
 	row := []string{
 		aws.ToString(cluster.ClusterName),
-		aws.ToString(cluster.ClusterArn),
-		aws.ToString(cluster.Status),
-		strconv.Itoa(int(cluster.RunningTasksCount)),
-		strconv.Itoa(int(cluster.PendingTasksCount)),
-		strconv.Itoa(int(cluster.ActiveServicesCount)),
-		aws.ToString(task.TaskArn),
-		aws.ToString(task.LastStatus),
-		aws.ToString(task.DesiredStatus),
-		aws.ToString(task.TaskDefinitionArn),
 		aws.ToString(container.Name),
 		aws.ToString(container.Image),
 		aws.ToString(container.LastStatus),
 		aws.ToString(container.RuntimeId),
+		aws.ToString(task.TaskArn),
+		aws.ToString(task.LastStatus),
 		hostPort,
 		containerPort,
 		protocol,
@@ -163,6 +167,77 @@ func writeCSVToFile() error {
 	return nil
 }
 
+// addContainerToJSON adds container data with cluster context to JSON array
+func addContainerToJSON(cluster *ecsTypes.Cluster, task *ecsTypes.Task, container *ecsTypes.Container) {
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+
+	containerData := ContainerData{
+		Cluster:       aws.ToString(cluster.ClusterName),
+		ContainerName: aws.ToString(container.Name),
+		Image:         aws.ToString(container.Image),
+		Status:        aws.ToString(container.LastStatus),
+		RuntimeID:     aws.ToString(container.RuntimeId),
+		TaskARN:       aws.ToString(task.TaskArn),
+		TaskStatus:    aws.ToString(task.LastStatus),
+		Timestamp:     timestamp,
+	}
+
+	// Network information
+	if len(container.NetworkBindings) > 0 {
+		binding := container.NetworkBindings[0] // Take first binding
+		if binding.HostPort != nil {
+			containerData.HostPort = int(*binding.HostPort)
+		}
+		if binding.ContainerPort != nil {
+			containerData.ContainerPort = int(*binding.ContainerPort)
+		}
+		if binding.Protocol != "" {
+			containerData.Protocol = string(binding.Protocol)
+		}
+	}
+
+	if len(container.NetworkInterfaces) > 0 {
+		netInterface := container.NetworkInterfaces[0] // Take first interface
+		if netInterface.PrivateIpv4Address != nil {
+			containerData.PrivateIP = aws.ToString(netInterface.PrivateIpv4Address)
+		}
+	}
+
+	jsonContainers = append(jsonContainers, containerData)
+}
+
+// writeJSONToFile writes the container data to a JSON file
+func writeJSONToFile() error {
+	fmt.Println("🔍 Request: Write Container Data to JSON")
+	fmt.Println("📞 SDK Function: json.MarshalIndent() + os.WriteFile()")
+	fmt.Println("⏳ Writing container data to containers.json...")
+
+	// Marshal containers array to JSON with indentation
+	jsonData, err := json.MarshalIndent(jsonContainers, "", "  ")
+	if err != nil {
+		errorMsg := fmt.Sprintf("❌ Failed to marshal JSON data: %v", err)
+		fmt.Println(errorMsg)
+		logToFile("Write JSON File", "json.MarshalIndent()", "ERROR", errorMsg)
+		return err
+	}
+
+	// Write to file
+	err = os.WriteFile("containers.json", jsonData, 0644)
+	if err != nil {
+		errorMsg := fmt.Sprintf("❌ Failed to write JSON file: %v", err)
+		fmt.Println(errorMsg)
+		logToFile("Write JSON File", "os.WriteFile()", "ERROR", errorMsg)
+		return err
+	}
+
+	successMsg := fmt.Sprintf("✅ Container data written to containers.json (%d containers)", len(jsonContainers))
+	fmt.Println(successMsg)
+	logToFile("Write JSON File", "writeJSONToFile()", "SUCCESS",
+		fmt.Sprintf("Written %d container records to JSON", len(jsonContainers)))
+
+	return nil
+}
+
 func main() {
 	// Create a context
 	ctx := context.TODO()
@@ -216,6 +291,12 @@ func main() {
 	fmt.Println("\n==================================================")
 	if err := writeCSVToFile(); err != nil {
 		fmt.Printf("⚠️ CSV export failed: %v\n", err)
+	}
+
+	// Write container data to JSON file
+	fmt.Println("\n==================================================")
+	if err := writeJSONToFile(); err != nil {
+		fmt.Printf("⚠️ JSON export failed: %v\n", err)
 	}
 
 	fmt.Println("\n🎉 AWS SDK v2 setup completed successfully!")
@@ -436,8 +517,9 @@ func listContainersInCluster(client *ecs.Client, cluster *ecsTypes.Cluster) erro
 				aws.ToString(task.TaskArn))
 			containerDetails = append(containerDetails, containerDetailStr)
 
-			// Add container data to CSV
+			// Add container data to CSV and JSON
 			addContainerToCSV(cluster, &task, &container)
+			addContainerToJSON(cluster, &task, &container)
 		}
 		fmt.Printf("\n")
 	}
