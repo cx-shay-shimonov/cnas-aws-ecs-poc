@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -27,31 +25,25 @@ import (
 const TargetRoleArn = "arn:aws:iam::822112283600:role/CnasTargetRole"
 const DEFAULT_REGION = "us-east-1" // Default region for getting all regions
 
-// Global variables for logging
-var operationLogs []string
-var csvData [][]string
-var jsonContainers []ContainerData
-
-// ContainerData represents a container with its cluster context for JSON export
 type ContainerData struct {
-	Cluster         string `json:"cluster"`
-	ContainerName   string `json:"container_name"`
-	Image           string `json:"image"`
-	Status          string `json:"status"`
-	RuntimeID       string `json:"runtime_id,omitempty"`
-	TaskARN         string `json:"task_arn"`
-	TaskStatus      string `json:"task_status"`
-	HostPort        int    `json:"host_port,omitempty"`
-	ContainerPort   int    `json:"container_port,omitempty"`
-	Protocol        string `json:"protocol,omitempty"`
-	PrivateIP       string `json:"private_ip,omitempty"`
-	PublicExposed   bool   `json:"public_exposed"`
-	NetworkMode     string `json:"network_mode,omitempty"`
-	SecurityGroups  string `json:"security_groups,omitempty"`
-	OpenPorts       string `json:"open_ports,omitempty"`
-	ExposureReasons string `json:"exposure_reasons,omitempty"`
-	Region          string `json:"region"`
-	Timestamp       string `json:"timestamp"`
+	Cluster         string
+	ContainerName   string
+	Image           string
+	Status          string
+	RuntimeID       string
+	TaskARN         string
+	TaskStatus      string
+	HostPort        int
+	ContainerPort   int
+	Protocol        string
+	PrivateIP       string
+	PublicExposed   bool
+	NetworkMode     string
+	SecurityGroups  string
+	OpenPorts       string
+	ExposureReasons string
+	Region          string
+	Timestamp       string
 }
 
 // ResourceType represents the type of the resource
@@ -59,8 +51,6 @@ type ResourceType string
 
 const (
 	ResourceTypeContainer ResourceType = "CONTAINER"
-	ResourceTypeService   ResourceType = "SERVICE"
-	ResourceTypeTask      ResourceType = "TASK"
 )
 
 // ResourceGroupType represents the type of the resource group
@@ -68,51 +58,69 @@ type ResourceGroupType string
 
 const (
 	ResourceGroupTypeECS ResourceGroupType = "ECS"
-	ResourceGroupTypeEKS ResourceGroupType = "EKS"
-	ResourceGroupTypeEC2 ResourceGroupType = "EC2"
 )
 
-// StoreRuntimeCorrelation represents runtime correlation for the resource
-//type StoreRuntimeCorrelation struct {
-//	RuntimeID   string            `json:"runtime_id,omitempty"`
-//	TaskARN     string            `json:"task_arn,omitempty"`
-//	NetworkInfo map[string]string `json:"network_info,omitempty"`
-//}
-
-// StoreResourceFlat represents the flattened resource structure
 type StoreResourceFlat struct {
-	Name          string            `json:"name"`
-	Type          ResourceType      `json:"type"`
-	Image         string            `json:"image"`
-	ImageSHA      string            `json:"image_sha"`
-	Metadata      map[string]string `json:"metadata"`
-	PublicExposed bool              `json:"public_exposed"`
-	Correlation   string            `json:"correlation"`
-	ClusterName   string            `json:"cluster_name"`
-	ClusterType   ResourceGroupType `json:"cluster_type"`
-	ProviderID    string            `json:"provider_id"`
-	Region        string            `json:"region"`
+	Name          string
+	Type          ResourceType
+	Image         string
+	ImageSHA      string
+	Metadata      map[string]string
+	PublicExposed bool
+	Correlation   string
+	ClusterName   string
+	ClusterType   ResourceGroupType
+	ProviderID    string
+	Region        string
 }
+
+//Name:          container.Name,
+//Type:          resources.ResourceType_CONTAINER,
+//Image:         container.Image,
+//ImageSha:      container.ImageSHA,
+//Metadata:      container.Tags,
+//PublicExposed: isExposed,
+//Correlation:   nil,
+//ClusterName:   cluster.Name,
+//ClusterType:   resources.ResourceGroupType_EKS,
+//ProviderId:    cluster.Arn,
+//Region:        cluster.Region,
+//type StoreResourceFlat struct {
+//	state         protoimpl.MessageState   `protogen:"open.v1"`
+//	Name          string                   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                                                                                   // Name of the resource
+//	Type          ResourceType             `protobuf:"varint,2,opt,name=type,proto3,enum=resources.ResourceType" json:"type,omitempty"`                                                      // Type of the resource
+//	Image         string                   `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`                                                                                 // Identified Image source for the resource
+//	ImageSha      string                   `protobuf:"bytes,4,opt,name=image_sha,json=imageSha,proto3" json:"image_sha,omitempty"`                                                           // Identified Image SHA for the resource
+//	Metadata      map[string]string        `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Generic resource metadata
+//	PublicExposed bool                     `protobuf:"varint,6,opt,name=public_exposed,json=publicExposed,proto3" json:"public_exposed,omitempty"`                                           // Indicates if resource is publicly exposed
+//	Correlation   *StoreRuntimeCorrelation `protobuf:"bytes,7,opt,name=correlation,proto3" json:"correlation,omitempty"`                                                                     // Optional runtime correlation for the resource
+//	ClusterName   string                   `protobuf:"bytes,8,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`                                                  // Group name
+//	ClusterType   ResourceGroupType        `protobuf:"varint,9,opt,name=cluster_type,json=clusterType,proto3,enum=resources.ResourceGroupType" json:"cluster_type,omitempty"`                // Type of the resource group
+//	ProviderId    string                   `protobuf:"bytes,10,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`                                                    // Cloud provider identifier
+//	Region        string                   `protobuf:"bytes,11,opt,name=region,proto3" json:"region,omitempty"`                                                                              // Cloud region
+//	unknownFields protoimpl.UnknownFields
+//	sizeCache     protoimpl.SizeCache
+//}
 
 // FlatResourceResult represents the result structure with ID and StoreResourceFlat
 type FlatResourceResult struct {
-	ID                string            `json:"id"`
-	StoreResourceFlat StoreResourceFlat `json:"store_resource_flat"`
+	ID                string
+	StoreResourceFlat StoreResourceFlat
 }
 
 // NetworkExposureAnalysis contains detailed network exposure information
 type NetworkExposureAnalysis struct {
-	IsPubliclyExposed bool     `json:"is_publicly_exposed"`
-	ExposureReasons   []string `json:"exposure_reasons"`
-	NetworkMode       string   `json:"network_mode"`
-	HasPublicIP       bool     `json:"has_public_ip"`
-	IsInPublicSubnet  bool     `json:"is_in_public_subnet"`
-	SecurityGroups    []string `json:"security_groups"`
-	OpenPorts         []string `json:"open_ports"`
-	LoadBalancers     []string `json:"load_balancers"`
-	PrivateIPs        []string `json:"private_ips"`
-	PublicIPs         []string `json:"public_ips"`
-	NetworkInterfaces []string `json:"network_interfaces"`
+	IsPubliclyExposed bool
+	ExposureReasons   []string
+	NetworkMode       string
+	HasPublicIP       bool
+	IsInPublicSubnet  bool
+	SecurityGroups    []string
+	OpenPorts         []string
+	LoadBalancers     []string
+	PrivateIPs        []string
+	PublicIPs         []string
+	NetworkInterfaces []string
 }
 
 // analyzeNetworkExposure performs comprehensive network exposure analysis for a task
@@ -197,12 +205,12 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 
 // ENIAnalysis contains ENI-specific analysis results
 type ENIAnalysis struct {
-	HasPublicIP      bool     `json:"has_public_ip"`
-	IsInPublicSubnet bool     `json:"is_in_public_subnet"`
-	SecurityGroups   []string `json:"security_groups"`
-	OpenPorts        []string `json:"open_ports"`
-	PrivateIPs       []string `json:"private_ips"`
-	PublicIPs        []string `json:"public_ips"`
+	HasPublicIP      bool
+	IsInPublicSubnet bool
+	SecurityGroups   []string
+	OpenPorts        []string
+	PrivateIPs       []string
+	PublicIPs        []string
 }
 
 // analyzeENI analyzes a specific ENI for public exposure
@@ -339,7 +347,7 @@ func analyzeSecurityGroupRules(ctx context.Context, ec2Client *ec2.Client, sgIds
 
 // LoadBalancerAnalysis contains load balancer exposure analysis
 type LoadBalancerAnalysis struct {
-	LoadBalancers []string `json:"load_balancers"`
+	LoadBalancers []string
 }
 
 // analyzeLoadBalancerExposure checks if task is associated with load balancers
@@ -379,307 +387,29 @@ func getAllRegions(ctx context.Context, ec2Client *ec2.Client) ([]string, error)
 	}
 
 	fmt.Printf("✅ Found %d AWS regions: %v\n", len(regions), regions)
-	logToFile("Get All Regions", "ec2.Client.DescribeRegions()", "SUCCESS", fmt.Sprintf("Found %d regions", len(regions)))
 	return regions, nil
-}
-
-// logToFile logs operation details to the global log slice
-func logToFile(requestName, sdkFunction, status, details string) {
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	logEntry := fmt.Sprintf("[%s] %s | %s | %s | %s",
-		timestamp, status, requestName, sdkFunction, details)
-	operationLogs = append(operationLogs, logEntry)
-}
-
-// initializeCSV initializes the CSV data with headers
-func initializeCSV() {
-	headers := []string{
-		"Cluster",
-		"Container_Name",
-		"Image",
-		"Status",
-		"Runtime_ID",
-		"Task_ARN",
-		"Task_Status",
-		"Host_Port",
-		"Container_Port",
-		"Protocol",
-		"Private_IP",
-		"Public_Exposed",
-		"Network_Mode",
-		"Security_Groups",
-		"Open_Ports",
-		"Exposure_Reasons",
-		"Region",
-		"Timestamp",
-	}
-	csvData = append(csvData, headers)
-}
-
-// addContainerToCSV adds container data with cluster context and network analysis to CSV
-func addContainerToCSV(cluster *ecsTypes.Cluster, task *ecsTypes.Task, container *ecsTypes.Container, networkAnalysis *NetworkExposureAnalysis, region string) {
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
-
-	// Extract network information
-	hostPort := ""
-	containerPort := ""
-	protocol := ""
-	privateIP := ""
-
-	if len(container.NetworkBindings) > 0 {
-		binding := container.NetworkBindings[0] // Take first binding
-		if binding.HostPort != nil {
-			hostPort = strconv.Itoa(int(*binding.HostPort))
-		}
-		if binding.ContainerPort != nil {
-			containerPort = strconv.Itoa(int(*binding.ContainerPort))
-		}
-		if binding.Protocol != "" {
-			protocol = string(binding.Protocol)
-		}
-	}
-
-	if len(container.NetworkInterfaces) > 0 {
-		netInterface := container.NetworkInterfaces[0] // Take first interface
-		if netInterface.PrivateIpv4Address != nil {
-			privateIP = aws.ToString(netInterface.PrivateIpv4Address)
-		}
-	}
-
-	// Extract network analysis data
-	publicExposed := "false"
-	networkMode := "unknown"
-	securityGroups := ""
-	openPorts := ""
-	exposureReasons := ""
-
-	if networkAnalysis != nil {
-		publicExposed = strconv.FormatBool(networkAnalysis.IsPubliclyExposed)
-		networkMode = networkAnalysis.NetworkMode
-		if len(networkAnalysis.SecurityGroups) > 0 {
-			securityGroups = fmt.Sprintf("%v", networkAnalysis.SecurityGroups)
-		}
-		if len(networkAnalysis.OpenPorts) > 0 {
-			openPorts = fmt.Sprintf("%v", networkAnalysis.OpenPorts)
-		}
-		if len(networkAnalysis.ExposureReasons) > 0 {
-			exposureReasons = fmt.Sprintf("%v", networkAnalysis.ExposureReasons)
-		}
-	} else {
-		// Fallback to basic exposure logic
-		if hostPort != "" && hostPort != "0" {
-			publicExposed = "true"
-			exposureReasons = "[Basic port mapping check]"
-		}
-	}
-
-	row := []string{
-		aws.ToString(cluster.ClusterName),
-		aws.ToString(container.Name),
-		aws.ToString(container.Image),
-		aws.ToString(container.LastStatus),
-		aws.ToString(container.RuntimeId),
-		aws.ToString(task.TaskArn),
-		aws.ToString(task.LastStatus),
-		hostPort,
-		containerPort,
-		protocol,
-		privateIP,
-		publicExposed,
-		networkMode,
-		securityGroups,
-		openPorts,
-		exposureReasons,
-		region,
-		timestamp,
-	}
-
-	csvData = append(csvData, row)
-}
-
-// writeCSVToFile writes the CSV data to a file
-func writeCSVToFile() error {
-	fmt.Println("🔍 Request: Write Container Data to CSV")
-	fmt.Println("📞 SDK Function: csv.NewWriter() + writer.WriteAll()")
-	fmt.Println("⏳ Writing container data to containers.csv...")
-
-	file, err := os.Create("containers.csv")
-	if err != nil {
-		errorMsg := fmt.Sprintf("❌ Failed to create CSV file: %v", err)
-		fmt.Println(errorMsg)
-		logToFile("Write CSV File", "os.Create()", "ERROR", errorMsg)
-		return err
-	}
-
-	defer func() {
-		if closeErr := file.Close(); closeErr != nil {
-			errorMsg := fmt.Sprintf("❌ Error closing CSV file: %v", closeErr)
-			fmt.Println(errorMsg)
-			logToFile("Write CSV File", "file.Close()", "ERROR", errorMsg)
-		}
-	}()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	err = writer.WriteAll(csvData)
-	if err != nil {
-		errorMsg := fmt.Sprintf("❌ Failed to write CSV data: %v", err)
-		fmt.Println(errorMsg)
-		logToFile("Write CSV File", "csv.Writer.WriteAll()", "ERROR", errorMsg)
-		return err
-	}
-
-	// Force write to disk
-	if err := file.Sync(); err != nil {
-		errorMsg := fmt.Sprintf("⚠️ Warning: Failed to sync CSV file to disk: %v", err)
-		fmt.Println(errorMsg)
-		logToFile("Write CSV File", "file.Sync()", "WARNING", errorMsg)
-	}
-
-	successMsg := fmt.Sprintf("✅ Container data written to containers.csv (%d rows including header)", len(csvData))
-	fmt.Println(successMsg)
-	logToFile("Write CSV File", "writeCSVToFile()", "SUCCESS",
-		fmt.Sprintf("Written %d container records to CSV", len(csvData)-1))
-
-	return nil
-}
-
-// addContainerToJSON adds container data with cluster context and optional network analysis to JSON array
-func addContainerToJSON(cluster *ecsTypes.Cluster, task *ecsTypes.Task, container *ecsTypes.Container, networkAnalysis *NetworkExposureAnalysis, region string) {
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
-
-	containerData := ContainerData{
-		Cluster:       aws.ToString(cluster.ClusterName),
-		ContainerName: aws.ToString(container.Name),
-		Image:         aws.ToString(container.Image),
-		Status:        aws.ToString(container.LastStatus),
-		RuntimeID:     aws.ToString(container.RuntimeId),
-		TaskARN:       aws.ToString(task.TaskArn),
-		TaskStatus:    aws.ToString(task.LastStatus),
-		Region:        region,
-		Timestamp:     timestamp,
-	}
-
-	// Network information
-	if len(container.NetworkBindings) > 0 {
-		binding := container.NetworkBindings[0] // Take first binding
-		if binding.HostPort != nil {
-			containerData.HostPort = int(*binding.HostPort)
-		}
-		if binding.ContainerPort != nil {
-			containerData.ContainerPort = int(*binding.ContainerPort)
-		}
-		if binding.Protocol != "" {
-			containerData.Protocol = string(binding.Protocol)
-		}
-	}
-
-	if len(container.NetworkInterfaces) > 0 {
-		netInterface := container.NetworkInterfaces[0] // Take first interface
-		if netInterface.PrivateIpv4Address != nil {
-			containerData.PrivateIP = aws.ToString(netInterface.PrivateIpv4Address)
-		}
-	}
-
-	// Enhanced network analysis data
-	if networkAnalysis != nil {
-		containerData.PublicExposed = networkAnalysis.IsPubliclyExposed
-		containerData.NetworkMode = networkAnalysis.NetworkMode
-		if len(networkAnalysis.SecurityGroups) > 0 {
-			containerData.SecurityGroups = fmt.Sprintf("%v", networkAnalysis.SecurityGroups)
-		}
-		if len(networkAnalysis.OpenPorts) > 0 {
-			containerData.OpenPorts = fmt.Sprintf("%v", networkAnalysis.OpenPorts)
-		}
-		if len(networkAnalysis.ExposureReasons) > 0 {
-			containerData.ExposureReasons = fmt.Sprintf("%v", networkAnalysis.ExposureReasons)
-		}
-	} else {
-		// Fallback to basic exposure logic
-		containerData.PublicExposed = containerData.HostPort > 0
-		containerData.NetworkMode = "unknown"
-	}
-
-	jsonContainers = append(jsonContainers, containerData)
-}
-
-// writeJSONToFile writes the container data to a JSON file
-func writeJSONToFile() error {
-	fmt.Println("🔍 Request: Write Container Data to JSON")
-	fmt.Println("📞 SDK Function: json.MarshalIndent() + os.WriteFile()")
-	fmt.Println("⏳ Writing container data to containers.json...")
-
-	// Marshal containers array to JSON with indentation
-	jsonData, err := json.MarshalIndent(jsonContainers, "", "  ")
-	if err != nil {
-		errorMsg := fmt.Sprintf("❌ Failed to marshal JSON data: %v", err)
-		fmt.Println(errorMsg)
-		logToFile("Write JSON File", "json.MarshalIndent()", "ERROR", errorMsg)
-		return err
-	}
-
-	// Write to file
-	err = os.WriteFile("containers.json", jsonData, 0644)
-	if err != nil {
-		errorMsg := fmt.Sprintf("❌ Failed to write JSON file: %v", err)
-		fmt.Println(errorMsg)
-		logToFile("Write JSON File", "os.WriteFile()", "ERROR", errorMsg)
-		return err
-	}
-
-	successMsg := fmt.Sprintf("✅ Container data written to containers.json (%d containers)", len(jsonContainers))
-	fmt.Println(successMsg)
-	logToFile("Write JSON File", "writeJSONToFile()", "SUCCESS",
-		fmt.Sprintf("Written %d container records to JSON", len(jsonContainers)))
-
-	return nil
 }
 
 func main() {
 	// Create a context
 	ctx := context.TODO()
 
-	// Clear any existing data and initialize fresh CSV/JSON structures
-	operationLogs = []string{}
-	csvData = [][]string{}
-	jsonContainers = []ContainerData{}
-
-	// Initialize CSV data structure
-	initializeCSV()
-	fmt.Println("📊 CSV data structure initialized")
-
-	// Load AWS configuration for default region to discover all regions
-	fmt.Println("🔍 Request: Load AWS Configuration for region discovery")
-	fmt.Println("📞 SDK Function: loadAWSConfig() -> AssumeRole")
-	fmt.Println("⏳ Loading AWS configuration...")
-
 	defaultCfg, err := loadAWSConfig(ctx, DEFAULT_REGION)
 	if err != nil {
 		errorMsg := fmt.Sprintf("❌ AWS Configuration failed for default region %s: %v", DEFAULT_REGION, err)
 		fmt.Println(errorMsg)
-		logToFile("Load AWS Configuration", "loadAWSConfig()", "ERROR", errorMsg)
 		log.Fatalf("Unable to load AWS config: %v", err)
 	}
 
-	// Log successful configuration
-	configMsg := "✅ AWS Configuration loaded successfully for region discovery"
-	fmt.Println(configMsg)
-	logToFile("Load AWS Configuration", "loadAWSConfig()", "SUCCESS", fmt.Sprintf("AWS Configuration loaded with AssumeRole: %s", TargetRoleArn))
-
-	// Create EC2 client to get all regions
-	fmt.Println("\n🔍 Request: Create EC2 Client for region discovery")
-	fmt.Println("📞 SDK Function: ec2.NewFromConfig()")
 	defaultEC2Client := ec2.NewFromConfig(defaultCfg)
 	fmt.Println("✅ EC2 Client created successfully for region discovery")
-	logToFile("Create EC2 Client", "ec2.NewFromConfig()", "SUCCESS", "EC2 client initialized for region discovery")
 
 	// Get all AWS regions
 	regions, err := getAllRegions(ctx, defaultEC2Client)
 	if err != nil {
 		errorMsg := fmt.Sprintf("❌ Failed to get AWS regions: %v", err)
 		fmt.Println(errorMsg)
-		logToFile("Get All Regions", "getAllRegions()", "ERROR", errorMsg)
+
 		log.Fatalf("Unable to get AWS regions: %v", err)
 	}
 
@@ -689,16 +419,11 @@ func main() {
 	var allFlatResources []FlatResourceResult
 	totalContainers := 0
 
-	for i, region := range regions {
-		fmt.Printf("\n🌐 REGION %d/%d: %s\n", i+1, len(regions), region)
-		fmt.Println("==================================================")
+	for _, region := range regions {
 
-		// Load configuration for this specific region
-		fmt.Printf("🔧 Loading AWS configuration for region %s...\n", region)
 		cfg, err := loadAWSConfig(ctx, region)
 		if err != nil {
 			fmt.Printf("⚠️ Failed to load AWS config for region %s: %v\n", region, err)
-			logToFile("Load AWS Configuration", "loadAWSConfig()", "ERROR", fmt.Sprintf("Failed for region %s: %v", region, err))
 			continue
 		}
 
@@ -708,12 +433,11 @@ func main() {
 		ec2Client := ec2.NewFromConfig(cfg)
 		elbv2Client := elasticloadbalancingv2.NewFromConfig(cfg)
 
-		// List containers in this region (without adding to CSV/JSON yet)
+		// List containers in this region
 		fmt.Printf("🐳 Listing ECS containers in region %s...\n", region)
 		regionContainers, err := listECSContainersByClusters(ctx, ecsClient, region)
 		if err != nil {
 			fmt.Printf("⚠️ ECS operation failed in region %s: %v\n", region, err)
-			logToFile("List ECS Containers", "listECSContainersByClusters()", "ERROR", fmt.Sprintf("Failed for region %s: %v", region, err))
 			continue
 		}
 
@@ -724,134 +448,11 @@ func main() {
 		if len(regionContainers) > 0 {
 			fmt.Printf("🔍 Analyzing network exposure for region %s...\n", region)
 
-			// Group containers by task ARN for network analysis
-			taskContainers := make(map[string][]ContainerData)
-			for _, container := range regionContainers {
-				taskContainers[container.TaskARN] = append(taskContainers[container.TaskARN], container)
-			}
-
-			// Perform network analysis for each task
-			taskNetworkAnalysis := make(map[string]*NetworkExposureAnalysis)
-			for taskArn, containers := range taskContainers {
-				fmt.Printf("   🔍 Analyzing network exposure for task: %s\n", taskArn)
-
-				// Get task details for network analysis
-				taskDetails, err := getTaskDetails(ctx, ecsClient, containers[0].Cluster, taskArn)
-				if err != nil {
-					fmt.Printf("   ⚠️ Warning: Failed to get task details for %s: %v\n", taskArn, err)
-					// Create basic analysis as fallback
-					taskNetworkAnalysis[taskArn] = &NetworkExposureAnalysis{
-						IsPubliclyExposed: len(containers) > 0 && containers[0].HostPort > 0,
-						ExposureReasons:   []string{"Basic port mapping check"},
-						NetworkMode:       "unknown",
-						SecurityGroups:    []string{},
-						OpenPorts:         []string{},
-						LoadBalancers:     []string{},
-						PrivateIPs:        []string{containers[0].PrivateIP},
-						PublicIPs:         []string{},
-						NetworkInterfaces: []string{},
-					}
-					continue
-				}
-
-				// Perform comprehensive network analysis
-				networkAnalysis, err := analyzeNetworkExposure(ctx, ec2Client, elbv2Client, taskDetails)
-				if err != nil {
-					fmt.Printf("   ⚠️ Warning: Failed to analyze network exposure for %s: %v\n", taskArn, err)
-					// Create basic analysis as fallback
-					networkAnalysis = &NetworkExposureAnalysis{
-						IsPubliclyExposed: len(containers) > 0 && containers[0].HostPort > 0,
-						ExposureReasons:   []string{"Basic port mapping check"},
-						NetworkMode:       "unknown",
-						SecurityGroups:    []string{},
-						OpenPorts:         []string{},
-						LoadBalancers:     []string{},
-						PrivateIPs:        []string{containers[0].PrivateIP},
-						PublicIPs:         []string{},
-						NetworkInterfaces: []string{},
-					}
-				}
-
-				taskNetworkAnalysis[taskArn] = networkAnalysis
-
-				// Print network analysis results
-				fmt.Printf("      📊 Network Analysis Results:\n")
-				fmt.Printf("         🔐 Publicly Exposed: %v\n", networkAnalysis.IsPubliclyExposed)
-				fmt.Printf("         🌐 Network Mode: %s\n", networkAnalysis.NetworkMode)
-				fmt.Printf("         🏠 Private IPs: %v\n", networkAnalysis.PrivateIPs)
-				if len(networkAnalysis.PublicIPs) > 0 {
-					fmt.Printf("         🌍 Public IPs: %v\n", networkAnalysis.PublicIPs)
-				}
-				if len(networkAnalysis.SecurityGroups) > 0 {
-					fmt.Printf("         🛡️ Security Groups: %v\n", networkAnalysis.SecurityGroups)
-				}
-				if len(networkAnalysis.OpenPorts) > 0 {
-					fmt.Printf("         🚪 Open Ports: %v\n", networkAnalysis.OpenPorts)
-				}
-				if len(networkAnalysis.ExposureReasons) > 0 {
-					fmt.Printf("         📋 Exposure Reasons: %v\n", networkAnalysis.ExposureReasons)
-				}
-			}
-
-			// Now add containers to CSV and JSON with network analysis
-			fmt.Printf("📝 Adding containers to output files with network analysis...\n")
-			for _, container := range regionContainers {
-				networkAnalysis := taskNetworkAnalysis[container.TaskARN]
-
-				// Create enhanced container data and add to JSON
-				enhancedContainer := createContainerData(&ecsTypes.Cluster{ClusterName: &container.Cluster}, &ecsTypes.Task{TaskArn: &container.TaskARN, LastStatus: &container.TaskStatus}, &ecsTypes.Container{
-					Name:       &container.ContainerName,
-					Image:      &container.Image,
-					LastStatus: &container.Status,
-					RuntimeId:  &container.RuntimeID,
-				}, networkAnalysis, region)
-
-				// Add to JSON containers
-				jsonContainers = append(jsonContainers, enhancedContainer)
-
-				// Add to CSV (we need to reconstruct the ECS objects for the CSV function)
-				cluster := &ecsTypes.Cluster{ClusterName: &container.Cluster}
-				task := &ecsTypes.Task{TaskArn: &container.TaskARN, LastStatus: &container.TaskStatus}
-				containerObj := &ecsTypes.Container{
-					Name:       &container.ContainerName,
-					Image:      &container.Image,
-					LastStatus: &container.Status,
-					RuntimeId:  &container.RuntimeID,
-				}
-
-				// Add network bindings if available
-				if container.HostPort > 0 || container.ContainerPort > 0 {
-					binding := ecsTypes.NetworkBinding{}
-					if container.HostPort > 0 {
-						hostPort := int32(container.HostPort)
-						binding.HostPort = &hostPort
-					}
-					if container.ContainerPort > 0 {
-						containerPort := int32(container.ContainerPort)
-						binding.ContainerPort = &containerPort
-					}
-					if container.Protocol != "" {
-						binding.Protocol = ecsTypes.TransportProtocol(container.Protocol)
-					}
-					containerObj.NetworkBindings = []ecsTypes.NetworkBinding{binding}
-				}
-
-				// Add network interfaces if available
-				if container.PrivateIP != "" {
-					netInterface := ecsTypes.NetworkInterface{
-						PrivateIpv4Address: &container.PrivateIP,
-					}
-					containerObj.NetworkInterfaces = []ecsTypes.NetworkInterface{netInterface}
-				}
-
-				addContainerToCSV(cluster, task, containerObj, networkAnalysis, region)
-			}
-
 			// Generate flat resources for this region
 			regionFlatResources, err := MapAWSToFlatResource(ctx, ecsClient, ec2Client, elbv2Client, regionContainers, region)
 			if err != nil {
 				fmt.Printf("⚠️ Failed to analyze containers in region %s: %v\n", region, err)
-				logToFile("MapAWSToFlatResource", "MapAWSToFlatResource()", "ERROR", fmt.Sprintf("Failed for region %s: %v", region, err))
+
 			} else {
 				allFlatResources = append(allFlatResources, regionFlatResources...)
 				fmt.Printf("✅ Successfully analyzed %d containers in region %s\n", len(regionFlatResources), region)
@@ -861,39 +462,48 @@ func main() {
 		}
 	}
 
-	// Summary
-	fmt.Printf("\n🎉 MULTI-REGION ANALYSIS COMPLETE\n")
-	fmt.Printf("==================================================\n")
-	fmt.Printf("📊 Regions analyzed: %d\n", len(regions))
-	fmt.Printf("📦 Total containers found: %d\n", totalContainers)
-	fmt.Printf("🔍 Total flat resources generated: %d\n", len(allFlatResources))
-
-	// Log the results as JSON string
+	// Print detailed results after all regions are processed
 	if len(allFlatResources) > 0 {
-		resultsJSON, err := json.MarshalIndent(allFlatResources, "", "  ")
-		if err != nil {
-			fmt.Printf("⚠️ Warning: Failed to marshal results to JSON: %v\n", err)
-			logToFile("MapAWSToFlatResource", "json.MarshalIndent()", "ERROR", fmt.Sprintf("Failed to marshal results: %v", err))
-		} else {
-			fmt.Printf("📄 Multi-Region FlatResource Results (JSON):\n%s\n", string(resultsJSON))
-			logToFile("MapAWSToFlatResource", "json.MarshalIndent()", "SUCCESS", fmt.Sprintf("Mapped %d containers to FlatResourceResult across %d regions", len(allFlatResources), len(regions)))
+		fmt.Println("\n📋 Detailed FlatResourceResult (CSV Format):")
+		fmt.Println("============================================")
+
+		// Print CSV headers
+		fmt.Println("ID,Name,Type,Image,ImageSHA,PublicExposed,Correlation,ClusterName,ClusterType,ProviderID,Region,Metadata")
+
+		// Print each result as CSV row
+		for _, result := range allFlatResources {
+			// Handle metadata - convert map to key=value pairs
+			metadataStr := ""
+			if len(result.StoreResourceFlat.Metadata) > 0 {
+				var metadataPairs []string
+				for key, value := range result.StoreResourceFlat.Metadata {
+					metadataPairs = append(metadataPairs, fmt.Sprintf("%s=%s", key, value))
+				}
+				metadataStr = fmt.Sprintf("\"%s\"", strings.Join(metadataPairs, ";"))
+			}
+
+			// Escape any commas in string fields by wrapping in quotes
+			name := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.Name)
+			image := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.Image)
+			imageSHA := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.ImageSHA)
+			correlation := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.Correlation)
+			clusterName := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.ClusterName)
+
+			fmt.Printf("%s,%s,%s,%s,%s,%t,%s,%s,%s,%s,%s,%s\n",
+				result.ID,
+				name,
+				result.StoreResourceFlat.Type,
+				image,
+				imageSHA,
+				result.StoreResourceFlat.PublicExposed,
+				correlation,
+				clusterName,
+				result.StoreResourceFlat.ClusterType,
+				result.StoreResourceFlat.ProviderID,
+				result.StoreResourceFlat.Region,
+				metadataStr)
 		}
 	}
-
-	// Write container data to CSV file
-	fmt.Println("\n==================================================")
-	if err := writeCSVToFile(); err != nil {
-		fmt.Printf("⚠️ CSV export failed: %v\n", err)
-	}
-
-	// Write container data to JSON file
-	fmt.Println("\n==================================================")
-	if err := writeJSONToFile(); err != nil {
-		fmt.Printf("⚠️ JSON export failed: %v\n", err)
-	}
-
-	fmt.Printf("\n🎉 Multi-region AWS ECS analysis completed successfully!\n")
-	fmt.Printf("📊 Analyzed %d regions and found %d containers total\n", len(regions), totalContainers)
 }
 
 // loadAWSConfig configures AWS with AssumeRole for a specific region
@@ -1081,26 +691,25 @@ func listContainersInCluster(client *ecs.Client, cluster *ecsTypes.Cluster, regi
 	if err != nil {
 		errorMsg := fmt.Sprintf("     ❌ Failed to list tasks in cluster %s: %v", clusterName, err)
 		fmt.Println(errorMsg)
-		logToFile("List Tasks", "ecs.Client.ListTasks()", "ERROR", errorMsg)
+
 		return nil, err
 	}
 
 	if len(taskArns) == 0 {
 		noTasksMsg := fmt.Sprintf("     📝 No running tasks found in cluster: %s", clusterName)
 		fmt.Println(noTasksMsg)
-		logToFile("List Tasks", "ecs.Client.ListTasks()", "INFO", noTasksMsg)
+
 		return containers, nil
 	}
 
 	fmt.Printf("     📊 Found %d running tasks\n", len(taskArns))
-	logToFile("List Tasks", "ecs.Client.ListTasks()", "SUCCESS", fmt.Sprintf("Found %d tasks in cluster %s", len(taskArns), clusterName))
 
 	// Describe tasks to get container details
 	tasks, err := describeTasks(client, clusterArn, taskArns)
 	if err != nil {
 		errorMsg := fmt.Sprintf("     ❌ Failed to describe tasks in cluster %s: %v", clusterName, err)
 		fmt.Println(errorMsg)
-		logToFile("Describe Tasks", "ecs.Client.DescribeTasks()", "ERROR", errorMsg)
+
 		return nil, err
 	}
 
@@ -1182,26 +791,12 @@ func listContainersInCluster(client *ecs.Client, cluster *ecsTypes.Cluster, regi
 	// Summary and logging
 	summaryMsg := fmt.Sprintf("Found %d containers across %d tasks in cluster %s", totalContainers, len(tasks), clusterName)
 	fmt.Printf("     ✅ %s\n", summaryMsg)
-	logToFile("List Containers", "listContainersInCluster()", "SUCCESS", summaryMsg)
-
-	// Log detailed container information
-	if len(containerDetails) > 0 {
-		for _, detail := range containerDetails {
-			logToFile("Container Details", "ecs.Container", "INFO", detail)
-		}
-	}
 
 	return containers, nil
 }
 
 func listECSContainersByClusters(ctx context.Context, client *ecs.Client, region string) ([]ContainerData, error) {
 	// Print detailed request information
-	requestName := "List ECS Containers Across All Clusters"
-	sdkFunction := "ecs.Client.ListClusters() + listContainersInCluster()"
-
-	fmt.Printf("🔍 Request: %s\n", requestName)
-	fmt.Printf("📞 SDK Function: %s\n", sdkFunction)
-	fmt.Println("⏳ Executing request...")
 
 	var allContainers []ContainerData
 
@@ -1211,24 +806,12 @@ func listECSContainersByClusters(ctx context.Context, client *ecs.Client, region
 
 	clustersList, err := client.ListClusters(ctx, input)
 	if err != nil {
-		errorMsg := fmt.Sprintf("❌ %s failed: %v", requestName, err)
-		fmt.Println(errorMsg)
-
-		// Log to output file
-		logToFile(requestName, sdkFunction, "ERROR", errorMsg)
-
 		return nil, fmt.Errorf("failed to list ECS clusters: %w", err)
 	}
 
 	// Success - print results
-	resultMsg := fmt.Sprintf("✅ %s completed successfully", requestName)
-	fmt.Println(resultMsg)
-	fmt.Printf("📊 Found %d ECS clusters:\n", len(clustersList.ClusterArns))
-
-	var listClustersOutput []string
 	for i, clusterArn := range clustersList.ClusterArns {
 		fmt.Printf("\n  %d. %s\n", i+1, clusterArn)
-		listClustersOutput = append(listClustersOutput, fmt.Sprintf("Cluster %d: %s", i+1, clusterArn))
 
 		// Describe each clusterDescription
 		fmt.Printf("     🔍 Describing clusterDescription details...\n")
@@ -1237,65 +820,16 @@ func listECSContainersByClusters(ctx context.Context, client *ecs.Client, region
 		if err != nil {
 			errorMsg := fmt.Sprintf("     ❌ Failed to describe clusterDescription %s: %v", clusterArn, err)
 			fmt.Println(errorMsg)
-			logToFile("Describe ECS Cluster", "ecs.Client.DescribeClusters()", "ERROR", errorMsg)
-			listClustersOutput = append(listClustersOutput, fmt.Sprintf("  Description failed: %v", err))
+
 			continue
 		}
 
 		if clusterDescription == nil {
 			noDataMsg := "     ⚠️ No clusterDescription data returned"
 			fmt.Println(noDataMsg)
-			listClustersOutput = append(listClustersOutput, "  No clusterDescription data returned")
 			continue
 		}
 
-		// Print clusterDescription details to terminal
-		fmt.Printf("     ✅ Cluster Description:\n")
-		fmt.Printf("        Name: %s\n", aws.ToString(clusterDescription.ClusterName))
-		fmt.Printf("        ARN: %s\n", aws.ToString(clusterDescription.ClusterArn))
-		fmt.Printf("        Status: %s\n", aws.ToString(clusterDescription.Status))
-		fmt.Printf("        Running Tasks: %d\n", clusterDescription.RunningTasksCount)
-		fmt.Printf("        Pending Tasks: %d\n", clusterDescription.PendingTasksCount)
-		fmt.Printf("        Active Services: %d\n", clusterDescription.ActiveServicesCount)
-		fmt.Printf("        Registered Container Instances: %d\n", clusterDescription.RegisteredContainerInstancesCount)
-
-		if clusterDescription.CapacityProviders != nil && len(clusterDescription.CapacityProviders) > 0 {
-			fmt.Printf("        Capacity Providers: %v\n", clusterDescription.CapacityProviders)
-		}
-
-		if clusterDescription.DefaultCapacityProviderStrategy != nil && len(clusterDescription.DefaultCapacityProviderStrategy) > 0 {
-			fmt.Printf("        Default Capacity Provider Strategy:\n")
-			for _, strategy := range clusterDescription.DefaultCapacityProviderStrategy {
-				fmt.Printf("          - Provider: %s, Weight: %d, Base: %d\n",
-					aws.ToString(strategy.CapacityProvider),
-					strategy.Weight,
-					strategy.Base)
-			}
-		}
-
-		if clusterDescription.Tags != nil && len(clusterDescription.Tags) > 0 {
-			fmt.Printf("        Tags:\n")
-			for _, tag := range clusterDescription.Tags {
-				fmt.Printf("          - %s: %s\n", aws.ToString(tag.Key), aws.ToString(tag.Value))
-			}
-		}
-
-		// Add detailed clusterDescription info to output log
-		clusterDetailStr := fmt.Sprintf("Cluster: %s | Status: %s | Running: %d | Pending: %d | Services: %d | Instances: %d",
-			aws.ToString(clusterDescription.ClusterName),
-			aws.ToString(clusterDescription.Status),
-			clusterDescription.RunningTasksCount,
-			clusterDescription.PendingTasksCount,
-			clusterDescription.ActiveServicesCount,
-			clusterDescription.RegisteredContainerInstancesCount)
-
-		listClustersOutput = append(listClustersOutput, fmt.Sprintf("  %s", clusterDetailStr))
-
-		// Log successful clusterDescription description
-		logToFile("Describe ECS Cluster", "ecs.Client.DescribeClusters()", "SUCCESS", clusterDetailStr)
-
-		// List containers in this clusterDescription
-		fmt.Printf("\n")
 		clusterContainers, err := listContainersInCluster(client, clusterDescription, region)
 		if err != nil {
 			fmt.Printf("     ⚠️ Failed to list containers in clusterDescription %s: %v\n", aws.ToString(clusterDescription.ClusterName), err)
@@ -1306,11 +840,6 @@ func listECSContainersByClusters(ctx context.Context, client *ecs.Client, region
 		}
 	}
 
-	// Log to output file
-	resultData := fmt.Sprintf("Found %d containers across %d clusters", len(allContainers), len(clustersList.ClusterArns))
-	logToFile(requestName, sdkFunction, "SUCCESS", resultData)
-
-	fmt.Printf("\n✅ Total containers collected: %d across %d clusters\n\n", len(allContainers), len(clustersList.ClusterArns))
 	return allContainers, nil
 }
 
@@ -1339,7 +868,7 @@ func MapAWSToFlatResource(ctx context.Context, ecsClient *ecs.Client, ec2Client 
 	allContainers := containerData
 
 	// Create result array
-	var results []FlatResourceResult
+	var flatResourceResult []FlatResourceResult
 
 	// Group containers by task ARN for network analysis
 	taskContainers := make(map[string][]ContainerData)
@@ -1378,24 +907,6 @@ func MapAWSToFlatResource(ctx context.Context, ecsClient *ecs.Client, ec2Client 
 		}
 
 		taskNetworkAnalysis[taskArn] = networkAnalysis
-
-		// Print network analysis results
-		fmt.Printf("   📊 Network Analysis Results:\n")
-		fmt.Printf("      🔐 Publicly Exposed: %v\n", networkAnalysis.IsPubliclyExposed)
-		fmt.Printf("      🌐 Network Mode: %s\n", networkAnalysis.NetworkMode)
-		fmt.Printf("      🏠 Private IPs: %v\n", networkAnalysis.PrivateIPs)
-		if len(networkAnalysis.PublicIPs) > 0 {
-			fmt.Printf("      🌍 Public IPs: %v\n", networkAnalysis.PublicIPs)
-		}
-		if len(networkAnalysis.SecurityGroups) > 0 {
-			fmt.Printf("      🛡️ Security Groups: %v\n", networkAnalysis.SecurityGroups)
-		}
-		if len(networkAnalysis.OpenPorts) > 0 {
-			fmt.Printf("      🚪 Open Ports: %v\n", networkAnalysis.OpenPorts)
-		}
-		if len(networkAnalysis.ExposureReasons) > 0 {
-			fmt.Printf("      📋 Exposure Reasons: %v\n", networkAnalysis.ExposureReasons)
-		}
 	}
 
 	// Map each container to FlatResourceResult with enhanced network data
@@ -1475,103 +986,11 @@ func MapAWSToFlatResource(ctx context.Context, ecsClient *ecs.Client, ec2Client 
 			StoreResourceFlat: storeResourceFlat,
 		}
 
-		results = append(results, result)
+		flatResourceResult = append(flatResourceResult, result)
 	}
 
-	// Log the results as JSON string
-	resultsJSON, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		fmt.Printf("⚠️ Warning: Failed to marshal results to JSON: %v\n", err)
-		logToFile("MapAWSToFlatResource", "json.MarshalIndent()", "ERROR", fmt.Sprintf("Failed to marshal results: %v", err))
-	} else {
-		fmt.Printf("📄 MapAWSToFlatResource Results (JSON):\n%s\n", string(resultsJSON))
-		logToFile("MapAWSToFlatResource", "json.MarshalIndent()", "SUCCESS", fmt.Sprintf("Mapped %d containers to FlatResourceResult", len(results)))
-	}
+	// Print summary of flatResourceResult
+	fmt.Printf("📄 MapAWSToFlatResource Results Summary: Generated %d flat resources\n", len(flatResourceResult))
 
-	return results, nil
-}
-
-// These functions have been removed to prevent duplication.
-// Network analysis is now handled directly in MapAWSToFlatResource.
-
-func writeConfigToFile(region string) {
-	// Log the file writing operation
-	fmt.Println("🔍 Request: Write Configuration to File")
-	fmt.Println("📞 SDK Function: os.Create() + file.WriteString()")
-	fmt.Println("⏳ Writing configuration and logs to out.txt...")
-
-	file, err := os.Create("out.txt")
-	if err != nil {
-		errorMsg := fmt.Sprintf("❌ Failed to create output file: %v", err)
-		fmt.Println(errorMsg)
-		logToFile("Write Configuration File", "os.Create()", "ERROR", errorMsg)
-		return
-	}
-
-	// Properly handle file closing with error checking
-	defer func() {
-		if closeErr := file.Close(); closeErr != nil {
-			errorMsg := fmt.Sprintf("❌ Error closing file: %v", closeErr)
-			fmt.Println(errorMsg)
-			logToFile("Write Configuration File", "file.Close()", "ERROR", errorMsg)
-		}
-	}()
-
-	// Configuration section
-	content := fmt.Sprintf("AWS SDK v2 Configuration & Operation Log\n")
-	content += fmt.Sprintf("=========================================\n")
-	content += fmt.Sprintf("Generated: %s\n\n", time.Now().Format("2006-01-02 15:04:05"))
-
-	content += fmt.Sprintf("CONFIGURATION:\n")
-	content += fmt.Sprintf("--------------\n")
-	content += fmt.Sprintf("Region: %s\n", region)
-	content += fmt.Sprintf("ECS Package: github.com/aws/aws-sdk-go-v2/service/ecs\n")
-	content += fmt.Sprintf("Config Package: github.com/aws/aws-sdk-go-v2/config\n")
-	content += fmt.Sprintf("Profile: ASTProd-Developers-602005780816\n")
-	content += fmt.Sprintf("AssumeRole ARN: %s\n", TargetRoleArn)
-
-	content += fmt.Sprintf("\nCREDENTIAL OPTIONS:\n")
-	content += fmt.Sprintf("-------------------\n")
-	content += fmt.Sprintf("- Environment Variables\n")
-	content += fmt.Sprintf("- AWS Credentials File\n")
-	content += fmt.Sprintf("- IAM Roles\n")
-	content += fmt.Sprintf("- AssumeRole with ARN\n")
-	content += fmt.Sprintf("- Profile-based Configuration\n")
-
-	// Operation logs section
-	content += fmt.Sprintf("\nOPERATION LOGS:\n")
-	content += fmt.Sprintf("---------------\n")
-	if len(operationLogs) > 0 {
-		for _, logEntry := range operationLogs {
-			content += fmt.Sprintf("%s\n", logEntry)
-		}
-	} else {
-		content += fmt.Sprintf("No operations logged yet.\n")
-	}
-
-	content += fmt.Sprintf("\nSetup completed successfully! ✅\n")
-
-	// Write content with error handling
-	bytesWritten, err := file.WriteString(content)
-	if err != nil {
-		errorMsg := fmt.Sprintf("❌ Failed to write content to file: %v", err)
-		fmt.Println(errorMsg)
-		logToFile("Write Configuration File", "file.WriteString()", "ERROR", errorMsg)
-		return
-	}
-
-	// Force write to disk
-	if err := file.Sync(); err != nil {
-		errorMsg := fmt.Sprintf("⚠️ Warning: Failed to sync file to disk: %v", err)
-		fmt.Println(errorMsg)
-		logToFile("Write Configuration File", "file.Sync()", "WARNING", errorMsg)
-		// Don't return here as the write was successful, just sync failed
-	}
-
-	// Success message with detailed info
-	successMsg := fmt.Sprintf("✅ Configuration and %d operation logs written to out.txt (%d bytes)",
-		len(operationLogs), bytesWritten)
-	fmt.Println(successMsg)
-	logToFile("Write Configuration File", "writeConfigToFile()", "SUCCESS",
-		fmt.Sprintf("Written %d operation logs, %d bytes", len(operationLogs), bytesWritten))
+	return flatResourceResult, nil
 }
