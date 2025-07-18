@@ -74,34 +74,6 @@ type StoreResourceFlat struct {
 	Region        string
 }
 
-//Name:          container.Name,
-//Type:          resources.ResourceType_CONTAINER,
-//Image:         container.Image,
-//ImageSha:      container.ImageSHA,
-//Metadata:      container.Tags,
-//PublicExposed: isExposed,
-//Correlation:   nil,
-//ClusterName:   cluster.Name,
-//ClusterType:   resources.ResourceGroupType_EKS,
-//ProviderId:    cluster.Arn,
-//Region:        cluster.Region,
-//type StoreResourceFlat struct {
-//	state         protoimpl.MessageState   `protogen:"open.v1"`
-//	Name          string                   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                                                                                   // Name of the resource
-//	Type          ResourceType             `protobuf:"varint,2,opt,name=type,proto3,enum=resources.ResourceType" json:"type,omitempty"`                                                      // Type of the resource
-//	Image         string                   `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`                                                                                 // Identified Image source for the resource
-//	ImageSha      string                   `protobuf:"bytes,4,opt,name=image_sha,json=imageSha,proto3" json:"image_sha,omitempty"`                                                           // Identified Image SHA for the resource
-//	Metadata      map[string]string        `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Generic resource metadata
-//	PublicExposed bool                     `protobuf:"varint,6,opt,name=public_exposed,json=publicExposed,proto3" json:"public_exposed,omitempty"`                                           // Indicates if resource is publicly exposed
-//	Correlation   *StoreRuntimeCorrelation `protobuf:"bytes,7,opt,name=correlation,proto3" json:"correlation,omitempty"`                                                                     // Optional runtime correlation for the resource
-//	ClusterName   string                   `protobuf:"bytes,8,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`                                                  // Group name
-//	ClusterType   ResourceGroupType        `protobuf:"varint,9,opt,name=cluster_type,json=clusterType,proto3,enum=resources.ResourceGroupType" json:"cluster_type,omitempty"`                // Type of the resource group
-//	ProviderId    string                   `protobuf:"bytes,10,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`                                                    // Cloud provider identifier
-//	Region        string                   `protobuf:"bytes,11,opt,name=region,proto3" json:"region,omitempty"`                                                                              // Cloud region
-//	unknownFields protoimpl.UnknownFields
-//	sizeCache     protoimpl.SizeCache
-//}
-
 // FlatResourceResult represents the result structure with ID and StoreResourceFlat
 type FlatResourceResult struct {
 	ID                string
@@ -158,55 +130,10 @@ func main() {
 
 	fmt.Printf("🌍 Found %d regions to explore: %v\n\n", len(regions), regions)
 
-	// Process containers from all regions
-	var allFlatResources []FlatResourceResult
-	totalContainers := 0
-
-	for _, region := range regions {
-
-		cfg, err := loadAWSConfig(ctx, region)
-		if err != nil {
-			fmt.Printf("⚠️ Failed to load AWS config for region %s: %v\n", region, err)
-			continue
-		}
-
-		// Create clients for this region
-		fmt.Printf("🔧 Creating AWS clients for region %s...\n", region)
-		ecsClient := ecs.NewFromConfig(cfg)
-		ec2Client := ec2.NewFromConfig(cfg)
-		elbv2Client := elasticloadbalancingv2.NewFromConfig(cfg)
-
-		// List containers in this region
-		fmt.Printf("🐳 Listing ECS containers in region %s...\n", region)
-		regionContainers, err := listRegionContainers(ctx, ecsClient, region)
-		if err != nil {
-			fmt.Printf("⚠️ ECS operation failed in region %s: %v\n", region, err)
-			continue
-		}
-
-		fmt.Printf("📊 Found %d containers in region %s\n", len(regionContainers), region)
-		totalContainers += len(regionContainers)
-
-		// Perform network analysis and generate flat resources
-		if len(regionContainers) > 0 {
-			fmt.Printf("🔍 Analyzing network exposure for region %s...\n", region)
-
-			// Generate flat resources for this region
-			regionFlatResources, err := MapAWSToFlatResource(ctx, ecsClient, ec2Client, elbv2Client, regionContainers, region)
-			if err != nil {
-				fmt.Printf("⚠️ Failed to analyze containers in region %s: %v\n", region, err)
-				continue
-			}
-			allFlatResources = append(allFlatResources, regionFlatResources...)
-			fmt.Printf("✅ Successfully analyzed %d containers in region %s\n", len(regionFlatResources), region)
-
-		} else {
-			fmt.Printf("📝 No containers found in region %s\n", region)
-		}
-	}
+	resources := ecsCrawl(regions, ctx)
 
 	// Print detailed results after all regions are processed
-	if len(allFlatResources) > 0 {
+	if len(resources) > 0 {
 		fmt.Println("\n📋 Detailed FlatResourceResult (CSV Format):")
 		fmt.Println("============================================")
 
@@ -214,7 +141,7 @@ func main() {
 		fmt.Println("ID,Name,Type,Image,ImageSHA,PublicExposed,Correlation,ClusterName,ClusterType,ProviderID,Region,Metadata")
 
 		// Print each result as CSV row
-		for _, result := range allFlatResources {
+		for _, result := range resources {
 			// Handle metadata - convert map to key=value pairs
 			metadataStr := ""
 			if len(result.StoreResourceFlat.Metadata) > 0 {
@@ -246,8 +173,90 @@ func main() {
 				result.StoreResourceFlat.Region,
 				metadataStr)
 		}
-		//return allFlatResources
 	}
+}
+
+func ecsCrawl(regions []ec2Types.Region, ctx context.Context) []FlatResourceResult {
+	// Process containers from all regions
+	var allResourcesList []FlatResourceResult
+	totalContainers := 0
+
+	for _, region := range regions {
+		regionName := aws.ToString(region.RegionName)
+		ecsClient, ec2Client, elbClient, err := createRegionClients(regionName, ctx)
+		if err != nil {
+			continue
+		}
+		// List containers in this region
+		fmt.Printf("🐳 Listing ECS containers in region %s...\n", regionName)
+
+		regionClusters, err := listClientClusters(ctx, ecsClient)
+		if err != nil {
+			fmt.Printf("failed to list client regionClusters: %w", err)
+			continue
+		}
+		regionContainers, err := listContainers(ecsClient, regionClusters, regionName)
+
+		if err != nil {
+			fmt.Printf("⚠️ ECS operation failed in region %s: %v\n", region, err)
+			continue
+		}
+
+		fmt.Printf("📊 Found %d containers in region %s\n", len(regionContainers), regionName)
+		totalContainers += len(regionContainers)
+
+		// Perform network analysis and generate flat resources
+		if len(regionContainers) <= 0 {
+			fmt.Printf("📝 No containers found in region %s\n", regionName)
+			continue
+		}
+		fmt.Printf("🔍 Analyzing network exposure for region %s...\n", regionName)
+		// container by task ARN for network analysis
+		taskArnContainerMap := createTaskArnContainerMap(regionContainers)
+
+		// Analyze each container task's network exposure
+		taskArnContainerNetworkMap := createTaskArnContainerNetworkMap(ctx, ecsClient, ec2Client, elbClient, taskArnContainerMap)
+
+		regionResourcesList := extractResources(regionContainers, taskArnContainerNetworkMap, regionName)
+
+		fmt.Printf("✅ Successfully analyzed %d containers in region %s\n", len(regionResourcesList), region)
+		allResourcesList = append(allResourcesList, regionResourcesList...)
+
+	}
+	return allResourcesList
+}
+
+func extractResources(containers []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis, regionName string) []FlatResourceResult {
+	var regionFlatResourcesList []FlatResourceResult
+	// Map each container to FlatResourceResult with enhanced network data
+	for _, container := range containers {
+		// Get network analysis for this container's task
+		containerNetworkAnalysis := taskArnContainerNetworkMap[container.TaskARN]
+
+		metadata, publicExposed, correlationData := summarizeContainerNetworkAnalysis(container, containerNetworkAnalysis)
+
+		resourceFlatContainer := createStoreResourceFlat(container, metadata, publicExposed, correlationData, regionName)
+
+		regionFlatResourcesList = append(regionFlatResourcesList, resourceFlatContainer)
+	}
+
+	fmt.Printf("📄 MapAWSToFlatResource Results Summary: Generated %d flat resources\n", len(regionFlatResourcesList))
+	return regionFlatResourcesList
+}
+
+func createRegionClients(regionName string, ctx context.Context) (*ecs.Client, *ec2.Client, *elasticloadbalancingv2.Client, error) {
+	cfg, err := loadAWSConfig(ctx, regionName)
+	if err != nil {
+		fmt.Printf("⚠️ Failed to load AWS config for region %s: %v\n", regionName, err)
+		return nil, nil, nil, err
+		//continue
+	}
+	// Create clients for this region
+	fmt.Printf("🔧 Creating AWS clients for region %s...\n", regionName)
+	ecsClient := ecs.NewFromConfig(cfg)
+	ec2Client := ec2.NewFromConfig(cfg)
+	elbClient := elasticloadbalancingv2.NewFromConfig(cfg)
+	return ecsClient, ec2Client, elbClient, nil
 }
 
 func listClientClusters(ctx context.Context, client *ecs.Client) ([]*ecsTypes.Cluster, error) {
@@ -289,7 +298,7 @@ func listClientClusters(ctx context.Context, client *ecs.Client) ([]*ecsTypes.Cl
 	return allClusters, nil
 }
 
-func listContainersInClusters(client *ecs.Client, clusters []*ecsTypes.Cluster, region string) ([]ContainerData, error) {
+func listContainers(client *ecs.Client, clusters []*ecsTypes.Cluster, region string) ([]ContainerData, error) {
 
 	allContainers := make([]ContainerData, 0)
 	for _, cluster := range clusters {
@@ -298,7 +307,7 @@ func listContainersInClusters(client *ecs.Client, clusters []*ecsTypes.Cluster, 
 		if err != nil {
 			errorMsg := fmt.Sprintf("     ❌ Failed to list containers in cluster %s: %v", aws.ToString(cluster.ClusterName), err)
 			fmt.Println(errorMsg)
-			continue
+			return allContainers, err
 		}
 		allContainers = append(allContainers, clusterContainer...)
 	}
@@ -577,7 +586,7 @@ func analyzeLoadBalancerExposure() (*LoadBalancerAnalysis, error) {
 }
 
 // listRegions gets all AWS regions using EC2 client
-func listRegions(ctx context.Context, ec2Client *ec2.Client) ([]string, error) {
+func listRegions(ctx context.Context, ec2Client *ec2.Client) ([]ec2Types.Region, error) {
 	fmt.Println("🌍 Getting all AWS regions...")
 
 	resp, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{
@@ -587,15 +596,8 @@ func listRegions(ctx context.Context, ec2Client *ec2.Client) ([]string, error) {
 		return nil, fmt.Errorf("failed to describe regions: %w", err)
 	}
 
-	var regions []string
-	for _, region := range resp.Regions {
-		if region.RegionName != nil {
-			regions = append(regions, *region.RegionName)
-		}
-	}
-
-	fmt.Printf("✅ Found %d AWS regions: %v\n", len(regions), regions)
-	return regions, nil
+	fmt.Printf("✅ Found %d AWS regions: %v\n", len(resp.Regions), resp.Regions)
+	return resp.Regions, nil
 }
 
 // configures AWS with AssumeRole for a specific region
@@ -771,17 +773,6 @@ func createContainerData(cluster *ecsTypes.Cluster, task *ecsTypes.Task, contain
 	return containerData
 }
 
-func listRegionContainers(ctx context.Context, client *ecs.Client, region string) ([]ContainerData, error) {
-
-	clusters, err := listClientClusters(ctx, client)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list client clusters: %w", err)
-	}
-	allContainers, err := listContainersInClusters(client, clusters, region)
-	return allContainers, err
-
-}
-
 // getTaskDetails retrieves task details needed for network analysis
 func getTaskDetails(ctx context.Context, ecsClient *ecs.Client, clusterName string, taskArn string) (*ecsTypes.Task, error) {
 	input := &ecs.DescribeTasksInput{
@@ -802,26 +793,120 @@ func getTaskDetails(ctx context.Context, ecsClient *ecs.Client, clusterName stri
 }
 
 // MapAWSToFlatResource converts container data to FlatResourceResult array with enhanced network analysis
-func MapAWSToFlatResource(ctx context.Context, ecsClient *ecs.Client, ec2Client *ec2.Client, elbv2Client *elasticloadbalancingv2.Client, containerData []ContainerData, region string) ([]FlatResourceResult, error) {
+func MapAWSToFlatResource(ctx context.Context, ecsClient *ecs.Client, ec2Client *ec2.Client, elbv2Client *elasticloadbalancingv2.Client, containers []ContainerData, region string) ([]FlatResourceResult, error) {
 	// Use the provided container data instead of fetching again
-	allContainers := containerData
+
+	// container by task ARN for network analysis
+	taskArnContainerMap := createTaskArnContainerMap(containers)
+
+	// Analyze each container task's network exposure
+	taskArnContainerNetworkMap := createTaskArnContainerNetworkMap(ctx, ecsClient, ec2Client, elbv2Client, taskArnContainerMap)
 
 	// Create result array
-	var flatResourceResult []FlatResourceResult
+	var flatResourcesList []FlatResourceResult
+	// Map each container to FlatResourceResult with enhanced network data
+	for _, container := range containers {
+		// Get network analysis for this container's task
+		containerNetworkAnalysis := taskArnContainerNetworkMap[container.TaskARN]
 
-	// Group containers by task ARN for network analysis
-	taskContainers := make(map[string][]ContainerData)
-	for _, container := range containerData {
-		taskContainers[container.TaskARN] = append(taskContainers[container.TaskARN], container)
+		metadata, publicExposed, correlationData := summarizeContainerNetworkAnalysis(container, containerNetworkAnalysis)
+
+		resourceFlat := createStoreResourceFlat(container, metadata, publicExposed, correlationData, region)
+
+		flatResourcesList = append(flatResourcesList, resourceFlat)
 	}
 
-	// Analyze each task's network exposure
-	taskNetworkAnalysis := make(map[string]*NetworkExposureAnalysis)
-	for taskArn, containers := range taskContainers {
+	// Print summary of flatResourcesList
+	fmt.Printf("📄 MapAWSToFlatResource Results Summary: Generated %d flat resources\n", len(flatResourcesList))
+
+	return flatResourcesList, nil
+}
+
+func createStoreResourceFlat(container ContainerData, metadata map[string]string, publicExposed bool, correlationData string, region string) FlatResourceResult {
+	// Create StoreResourceFlat
+	storeResourceFlat := StoreResourceFlat{
+		Name:          container.ContainerName,
+		Type:          ResourceTypeContainer,
+		Image:         container.Image,
+		ImageSHA:      "", // Not available in current container data
+		Metadata:      metadata,
+		PublicExposed: publicExposed,
+		Correlation:   correlationData,
+		ClusterName:   container.Cluster,
+		ClusterType:   ResourceGroupTypeECS,
+		ProviderID:    "aws",
+		Region:        region,
+	}
+
+	// Create result with UUID
+	result := FlatResourceResult{
+		ID:                uuid.NewString(),
+		StoreResourceFlat: storeResourceFlat,
+	}
+	return result
+}
+
+func summarizeContainerNetworkAnalysis(container ContainerData, containerNetworkAnalysis *NetworkExposureAnalysis) (map[string]string, bool, string) {
+	// Create enhanced metadata map
+	metadata := make(map[string]string)
+	metadata["task_status"] = container.TaskStatus
+	metadata["timestamp"] = container.Timestamp
+	if container.Protocol != "" {
+		metadata["protocol"] = container.Protocol
+	}
+	if container.HostPort > 0 {
+		metadata["host_port"] = strconv.Itoa(container.HostPort)
+	}
+	if container.ContainerPort > 0 {
+		metadata["container_port"] = strconv.Itoa(container.ContainerPort)
+	}
+
+	// Add network analysis data to metadata
+	if containerNetworkAnalysis != nil {
+		metadata["network_mode"] = containerNetworkAnalysis.NetworkMode
+		metadata["has_public_ip"] = strconv.FormatBool(containerNetworkAnalysis.HasPublicIP)
+		metadata["is_in_public_subnet"] = strconv.FormatBool(containerNetworkAnalysis.IsInPublicSubnet)
+		if len(containerNetworkAnalysis.SecurityGroups) > 0 {
+			metadata["security_groups"] = fmt.Sprintf("%v", containerNetworkAnalysis.SecurityGroups)
+		}
+		if len(containerNetworkAnalysis.OpenPorts) > 0 {
+			metadata["open_ports"] = fmt.Sprintf("%v", containerNetworkAnalysis.OpenPorts)
+		}
+		if len(containerNetworkAnalysis.ExposureReasons) > 0 {
+			metadata["exposure_reasons"] = fmt.Sprintf("%v", containerNetworkAnalysis.ExposureReasons)
+		}
+		if len(containerNetworkAnalysis.NetworkInterfaces) > 0 {
+			metadata["network_interfaces"] = fmt.Sprintf("%v", containerNetworkAnalysis.NetworkInterfaces)
+		}
+	}
+
+	// Enhanced public exposure determination
+	var publicExposed bool
+	if containerNetworkAnalysis != nil {
+		publicExposed = containerNetworkAnalysis.IsPubliclyExposed
+	} else {
+		// Fallback to basic logic
+		publicExposed = container.HostPort > 0
+	}
+
+	// Create enhanced correlation string with network data
+	correlationData := fmt.Sprintf("runtime_id:%s,task_arn:%s", container.RuntimeID, container.TaskARN)
+	if container.PrivateIP != "" {
+		correlationData += fmt.Sprintf(",private_ip:%s", container.PrivateIP)
+	}
+	if containerNetworkAnalysis != nil && len(containerNetworkAnalysis.PublicIPs) > 0 {
+		correlationData += fmt.Sprintf(",public_ips:%v", containerNetworkAnalysis.PublicIPs)
+	}
+	return metadata, publicExposed, correlationData
+}
+
+func createTaskArnContainerNetworkMap(ctx context.Context, ecsClient *ecs.Client, ec2Client *ec2.Client, elbv2Client *elasticloadbalancingv2.Client, taskArnContainerMap map[string]ContainerData) map[string]*NetworkExposureAnalysis {
+	taskArnContainerNetworkMap := make(map[string]*NetworkExposureAnalysis)
+	for taskArn, container := range taskArnContainerMap {
 		fmt.Printf("🔍 Analyzing network exposure for task: %s\n", taskArn)
 
 		// Get task details for network analysis
-		taskDetails, err := getTaskDetails(ctx, ecsClient, containers[0].Cluster, taskArn)
+		taskDetails, err := getTaskDetails(ctx, ecsClient, container.Cluster, taskArn)
 		if err != nil {
 			fmt.Printf("⚠️ Warning: Failed to get task details for %s: %v\n", taskArn, err)
 			continue
@@ -833,105 +918,29 @@ func MapAWSToFlatResource(ctx context.Context, ecsClient *ecs.Client, ec2Client 
 			fmt.Printf("⚠️ Warning: Failed to analyze network exposure for %s: %v\n", taskArn, err)
 			// Create basic analysis as fallback
 			networkAnalysis = &NetworkExposureAnalysis{
-				IsPubliclyExposed: len(containers) > 0 && containers[0].HostPort > 0,
+				IsPubliclyExposed: container.HostPort > 0,
 				ExposureReasons:   []string{"Basic port mapping check"},
 				NetworkMode:       "unknown",
 				SecurityGroups:    []string{},
 				OpenPorts:         []string{},
 				LoadBalancers:     []string{},
-				PrivateIPs:        []string{containers[0].PrivateIP},
+				PrivateIPs:        []string{container.PrivateIP},
 				PublicIPs:         []string{},
 				NetworkInterfaces: []string{},
 			}
 		}
 
-		taskNetworkAnalysis[taskArn] = networkAnalysis
+		taskArnContainerNetworkMap[taskArn] = networkAnalysis
 	}
+	return taskArnContainerNetworkMap
+}
 
-	// Map each container to FlatResourceResult with enhanced network data
-	for _, container := range allContainers {
-		// Get network analysis for this container's task
-		networkAnalysis := taskNetworkAnalysis[container.TaskARN]
-
-		// Create enhanced metadata map
-		metadata := make(map[string]string)
-		metadata["task_status"] = container.TaskStatus
-		metadata["timestamp"] = container.Timestamp
-		if container.Protocol != "" {
-			metadata["protocol"] = container.Protocol
-		}
-		if container.HostPort > 0 {
-			metadata["host_port"] = strconv.Itoa(container.HostPort)
-		}
-		if container.ContainerPort > 0 {
-			metadata["container_port"] = strconv.Itoa(container.ContainerPort)
-		}
-
-		// Add network analysis data to metadata
-		if networkAnalysis != nil {
-			metadata["network_mode"] = networkAnalysis.NetworkMode
-			metadata["has_public_ip"] = strconv.FormatBool(networkAnalysis.HasPublicIP)
-			metadata["is_in_public_subnet"] = strconv.FormatBool(networkAnalysis.IsInPublicSubnet)
-			if len(networkAnalysis.SecurityGroups) > 0 {
-				metadata["security_groups"] = fmt.Sprintf("%v", networkAnalysis.SecurityGroups)
-			}
-			if len(networkAnalysis.OpenPorts) > 0 {
-				metadata["open_ports"] = fmt.Sprintf("%v", networkAnalysis.OpenPorts)
-			}
-			if len(networkAnalysis.ExposureReasons) > 0 {
-				metadata["exposure_reasons"] = fmt.Sprintf("%v", networkAnalysis.ExposureReasons)
-			}
-			if len(networkAnalysis.NetworkInterfaces) > 0 {
-				metadata["network_interfaces"] = fmt.Sprintf("%v", networkAnalysis.NetworkInterfaces)
-			}
-		}
-
-		// Enhanced public exposure determination
-		var publicExposed bool
-		if networkAnalysis != nil {
-			publicExposed = networkAnalysis.IsPubliclyExposed
-		} else {
-			// Fallback to basic logic
-			publicExposed = container.HostPort > 0
-		}
-
-		// Create enhanced correlation string with network data
-		correlationData := fmt.Sprintf("runtime_id:%s,task_arn:%s", container.RuntimeID, container.TaskARN)
-		if container.PrivateIP != "" {
-			correlationData += fmt.Sprintf(",private_ip:%s", container.PrivateIP)
-		}
-		if networkAnalysis != nil && len(networkAnalysis.PublicIPs) > 0 {
-			correlationData += fmt.Sprintf(",public_ips:%v", networkAnalysis.PublicIPs)
-		}
-
-		// Create StoreResourceFlat
-		storeResourceFlat := StoreResourceFlat{
-			Name:          container.ContainerName,
-			Type:          ResourceTypeContainer,
-			Image:         container.Image,
-			ImageSHA:      "", // Not available in current container data
-			Metadata:      metadata,
-			PublicExposed: publicExposed,
-			Correlation:   correlationData,
-			ClusterName:   container.Cluster,
-			ClusterType:   ResourceGroupTypeECS,
-			ProviderID:    "aws",
-			Region:        region,
-		}
-
-		// Create result with UUID
-		result := FlatResourceResult{
-			ID:                uuid.NewString(),
-			StoreResourceFlat: storeResourceFlat,
-		}
-
-		flatResourceResult = append(flatResourceResult, result)
+func createTaskArnContainerMap(containerData []ContainerData) map[string]ContainerData {
+	taskArnContainerMap := make(map[string]ContainerData)
+	for _, container := range containerData {
+		taskArnContainerMap[container.TaskARN] = container
 	}
-
-	// Print summary of flatResourceResult
-	fmt.Printf("📄 MapAWSToFlatResource Results Summary: Generated %d flat resources\n", len(flatResourceResult))
-
-	return flatResourceResult, nil
+	return taskArnContainerMap
 }
 
 // analyzeNetworkExposure performs comprehensive network exposure analysis for a task
