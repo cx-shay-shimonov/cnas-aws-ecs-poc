@@ -1,0 +1,80 @@
+AWS SDK v2 Configuration & Operation Log
+=========================================
+Generated: 2025-07-18 05:24:10
+
+CONFIGURATION:
+--------------
+Region: Multi-region analysis: 33 regions
+ECS Package: github.com/aws/aws-sdk-go-v2/service/ecs
+Config Package: github.com/aws/aws-sdk-go-v2/config
+Profile: ASTProd-Developers-602005780816
+AssumeRole ARN: arn:aws:iam::822112283600:role/CnasTargetRole
+
+CREDENTIAL OPTIONS:
+-------------------
+- Environment Variables
+- AWS Credentials File
+- IAM Roles
+- AssumeRole with ARN
+- Profile-based Configuration
+
+OPERATION LOGS:
+---------------
+[2025-07-18 05:23:05] SUCCESS | Load AWS Configuration | loadAWSConfig() | AWS Configuration loaded with AssumeRole: arn:aws:iam::822112283600:role/CnasTargetRole
+[2025-07-18 05:23:05] SUCCESS | Create EC2 Client | ec2.NewFromConfig() | EC2 client initialized for region discovery
+[2025-07-18 05:23:06] SUCCESS | Get All Regions | ec2.Client.DescribeRegions() | Found 33 regions
+[2025-07-18 05:23:07] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region ap-south-2: ❌ All credential options failed for region ap-south-2. Please check your AWS configuration
+[2025-07-18 05:23:08] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:09] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region eu-south-1: ❌ All credential options failed for region eu-south-1. Please check your AWS configuration
+[2025-07-18 05:23:09] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region eu-south-2: ❌ All credential options failed for region eu-south-2. Please check your AWS configuration
+[2025-07-18 05:23:10] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region me-central-1: ❌ All credential options failed for region me-central-1. Please check your AWS configuration
+[2025-07-18 05:23:11] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region il-central-1: ❌ All credential options failed for region il-central-1. Please check your AWS configuration
+[2025-07-18 05:23:14] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:16] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region ap-east-2: ❌ All credential options failed for region ap-east-2. Please check your AWS configuration
+[2025-07-18 05:23:17] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region mx-central-1: ❌ All credential options failed for region mx-central-1. Please check your AWS configuration
+[2025-07-18 05:23:18] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:19] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region eu-central-2: ❌ All credential options failed for region eu-central-2. Please check your AWS configuration
+[2025-07-18 05:23:21] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:25] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:27] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region af-south-1: ❌ All credential options failed for region af-south-1. Please check your AWS configuration
+[2025-07-18 05:23:28] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:29] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:30] SUCCESS | Describe ECS Cluster | ecs.Client.DescribeClusters() | Cluster: demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2 | Status: ACTIVE | Running: 1 | Pending: 0 | Services: 1 | Instances: 0
+[2025-07-18 05:23:30] SUCCESS | List Tasks | ecs.Client.ListTasks() | Found 1 tasks in cluster demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2
+[2025-07-18 05:23:30] SUCCESS | List Containers | listContainersInCluster() | Found 2 containers across 1 tasks in cluster demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2
+[2025-07-18 05:23:30] INFO | Container Details | ecs.Container | Container: ecs-service-connect-o3DQRY | Image:  | Status: RUNNING | Task: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/1e8449ff63854e999b8d1498020d25dc
+[2025-07-18 05:23:30] INFO | Container Details | ecs.Container | Container: php-demo-service | Image: 822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a | Status: RUNNING | Task: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/1e8449ff63854e999b8d1498020d25dc
+[2025-07-18 05:23:30] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 2 containers across 1 clusters
+[2025-07-18 05:23:32] SUCCESS | MapAWSToFlatResource | Summary | Mapped 2 containers to FlatResourceResult
+[2025-07-18 05:23:33] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:37] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:40] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:42] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:45] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:48] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:49] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region ap-east-1: ❌ All credential options failed for region ap-east-1. Please check your AWS configuration
+[2025-07-18 05:23:50] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region ca-west-1: ❌ All credential options failed for region ca-west-1. Please check your AWS configuration
+[2025-07-18 05:23:52] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:56] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 0 containers across 0 clusters
+[2025-07-18 05:23:57] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region ap-southeast-3: ❌ All credential options failed for region ap-southeast-3. Please check your AWS configuration
+[2025-07-18 05:23:59] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region ap-southeast-4: ❌ All credential options failed for region ap-southeast-4. Please check your AWS configuration
+[2025-07-18 05:24:01] SUCCESS | Describe ECS Cluster | ecs.Client.DescribeClusters() | Cluster: AST-83961-Fargate | Status: ACTIVE | Running: 1 | Pending: 0 | Services: 1 | Instances: 0
+[2025-07-18 05:24:02] SUCCESS | List Tasks | ecs.Client.ListTasks() | Found 1 tasks in cluster AST-83961-Fargate
+[2025-07-18 05:24:02] SUCCESS | List Containers | listContainersInCluster() | Found 2 containers across 1 tasks in cluster AST-83961-Fargate
+[2025-07-18 05:24:02] INFO | Container Details | ecs.Container | Container: nginx-container | Image: nginx:latest | Status: RUNNING | Task: arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/1908f1f2c8cc46da92cf4501d8e0a3bc
+[2025-07-18 05:24:02] INFO | Container Details | ecs.Container | Container: ecs-service-connect-60JfD | Image:  | Status: RUNNING | Task: arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/1908f1f2c8cc46da92cf4501d8e0a3bc
+[2025-07-18 05:24:02] SUCCESS | Describe ECS Cluster | ecs.Client.DescribeClusters() | Cluster: bb-cluster-test | Status: ACTIVE | Running: 0 | Pending: 0 | Services: 0 | Instances: 0
+[2025-07-18 05:24:02] INFO | List Tasks | ecs.Client.ListTasks() |      📝 No running tasks found in cluster: bb-cluster-test
+[2025-07-18 05:24:02] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 2 containers across 2 clusters
+[2025-07-18 05:24:04] SUCCESS | MapAWSToFlatResource | Summary | Mapped 2 containers to FlatResourceResult
+[2025-07-18 05:24:05] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region ap-southeast-5: ❌ All credential options failed for region ap-southeast-5. Please check your AWS configuration
+[2025-07-18 05:24:06] SUCCESS | Describe ECS Cluster | ecs.Client.DescribeClusters() | Cluster: AST-83961-Fargate | Status: ACTIVE | Running: 1 | Pending: 0 | Services: 0 | Instances: 0
+[2025-07-18 05:24:07] SUCCESS | List Tasks | ecs.Client.ListTasks() | Found 1 tasks in cluster AST-83961-Fargate
+[2025-07-18 05:24:07] SUCCESS | List Containers | listContainersInCluster() | Found 1 containers across 1 tasks in cluster AST-83961-Fargate
+[2025-07-18 05:24:07] INFO | Container Details | ecs.Container | Container: nginx-container-2 | Image: nginx:latest | Status: RUNNING | Task: arn:aws:ecs:us-east-2:822112283600:task/AST-83961-Fargate/0f1315e4382349d6ab0827edb70a3445
+[2025-07-18 05:24:07] SUCCESS | List ECS Containers Across All Clusters | ecs.Client.ListClusters() + listContainersInCluster() | Found 1 containers across 1 clusters
+[2025-07-18 05:24:09] SUCCESS | MapAWSToFlatResource | Summary | Mapped 1 containers to FlatResourceResult
+[2025-07-18 05:24:10] ERROR | Load AWS Configuration | loadAWSConfig() | Failed for region ap-southeast-7: ❌ All credential options failed for region ap-southeast-7. Please check your AWS configuration
+[2025-07-18 05:24:10] SUCCESS | MapAWSToFlatResource | Summary | Mapped 5 containers to FlatResourceResult across 33 regions
+
+Setup completed successfully! ✅
