@@ -50,3 +50,4 @@ node_modules/
 
 # IDE configurations with credentials
 .vscode/launch.json
+/run.sh
