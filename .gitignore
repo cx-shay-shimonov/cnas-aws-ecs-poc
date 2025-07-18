@@ -47,3 +47,6 @@ node_modules/
 .env
 .env.local
 .env.*.local
+
+# IDE configurations with credentials
+.vscode/launch.json
