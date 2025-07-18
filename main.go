@@ -178,56 +178,65 @@ func main() {
 
 func ecsCrawl(regions []ec2Types.Region, ctx context.Context) []FlatResourceResult {
 	// Process containers from all regions
-	var allResourcesList []FlatResourceResult
-	totalContainers := 0
+	var allResources []FlatResourceResult
 
 	for _, region := range regions {
 		regionName := aws.ToString(region.RegionName)
-		ecsClient, ec2Client, elbClient, err := createRegionClients(regionName, ctx)
+		regionResources, err := extractRegionResources(regionName, ctx)
 		if err != nil {
 			continue
 		}
-		// List containers in this region
-		fmt.Printf("🐳 Listing ECS containers in region %s...\n", regionName)
-
-		regionClusters, err := listClientClusters(ctx, ecsClient)
-		if err != nil {
-			fmt.Printf("failed to list client regionClusters: %w", err)
-			continue
-		}
-		regionContainers, err := listContainers(ecsClient, regionClusters, regionName)
-
-		if err != nil {
-			fmt.Printf("⚠️ ECS operation failed in region %s: %v\n", region, err)
-			continue
-		}
-
-		fmt.Printf("📊 Found %d containers in region %s\n", len(regionContainers), regionName)
-		totalContainers += len(regionContainers)
-
-		// Perform network analysis and generate flat resources
-		if len(regionContainers) <= 0 {
-			fmt.Printf("📝 No containers found in region %s\n", regionName)
-			continue
-		}
-		fmt.Printf("🔍 Analyzing network exposure for region %s...\n", regionName)
-		// container by task ARN for network analysis
-		taskArnContainerMap := createTaskArnContainerMap(regionContainers)
-
-		// Analyze each container task's network exposure
-		taskArnContainerNetworkMap := createTaskArnContainerNetworkMap(ctx, ecsClient, ec2Client, elbClient, taskArnContainerMap)
-
-		regionResourcesList := extractResources(regionContainers, taskArnContainerNetworkMap, regionName)
-
-		fmt.Printf("✅ Successfully analyzed %d containers in region %s\n", len(regionResourcesList), region)
-		allResourcesList = append(allResourcesList, regionResourcesList...)
-
+		allResources = append(allResources, regionResources...)
 	}
-	return allResourcesList
+	return allResources
+}
+
+func extractRegionResources(regionName string, ctx context.Context) ([]FlatResourceResult, error) {
+	ecsClient, ec2Client, elbClient, err := createRegionClients(regionName, ctx)
+	totalContainers := 0
+
+	if err != nil {
+		return nil, err
+	}
+	// List containers in this region
+	fmt.Printf("🐳 Listing ECS containers in region %s...\n", regionName)
+
+	regionClusters, err := listRegionClusters(ctx, ecsClient)
+	if err != nil {
+		fmt.Printf("failed to list client regionClusters: %w", err)
+		return nil, err
+	}
+	regionContainers, err := listRegoinContainers(ecsClient, regionClusters, regionName)
+
+	if err != nil {
+		fmt.Printf("⚠️ ECS operation failed in region %s: %v\n", regionName, err)
+		return nil, err
+	}
+
+	fmt.Printf("📊 Found %d containers in region %s\n", len(regionContainers), regionName)
+	totalContainers += len(regionContainers)
+
+	// Perform network analysis and generate flat resources
+	if len(regionContainers) <= 0 {
+		fmt.Printf("📝 No containers found in region %s\n", regionName)
+		return nil, fmt.Errorf("no containers found in region %s", regionName)
+	}
+	fmt.Printf("🔍 Analyzing network exposure for region %s...\n", regionName)
+	// container by task ARN for network analysis
+	taskArnContainerMap := createTaskArnContainerMap(regionContainers)
+
+	// Analyze each container task's network exposure
+	taskArnContainerNetworkMap := createTaskArnContainerNetworkMap(ctx, ecsClient, ec2Client, elbClient, taskArnContainerMap)
+
+	regionResourcesList := extractResources(regionContainers, taskArnContainerNetworkMap, regionName)
+
+	fmt.Printf("✅ Successfully analyzed %d containers in region %s\n", len(regionResourcesList), regionName)
+
+	return regionResourcesList, nil
 }
 
 func extractResources(containers []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis, regionName string) []FlatResourceResult {
-	var regionFlatResourcesList []FlatResourceResult
+	var allResourcesList []FlatResourceResult
 	// Map each container to FlatResourceResult with enhanced network data
 	for _, container := range containers {
 		// Get network analysis for this container's task
@@ -235,13 +244,13 @@ func extractResources(containers []ContainerData, taskArnContainerNetworkMap map
 
 		metadata, publicExposed, correlationData := summarizeContainerNetworkAnalysis(container, containerNetworkAnalysis)
 
-		resourceFlatContainer := createStoreResourceFlat(container, metadata, publicExposed, correlationData, regionName)
+		resourceFlatContainer := containerToResource(container, metadata, publicExposed, correlationData, regionName)
 
-		regionFlatResourcesList = append(regionFlatResourcesList, resourceFlatContainer)
+		allResourcesList = append(allResourcesList, resourceFlatContainer)
 	}
 
-	fmt.Printf("📄 MapAWSToFlatResource Results Summary: Generated %d flat resources\n", len(regionFlatResourcesList))
-	return regionFlatResourcesList
+	fmt.Printf("📄 MapAWSToFlatResource Results Summary: Generated %d flat resources\n", len(allResourcesList))
+	return allResourcesList
 }
 
 func createRegionClients(regionName string, ctx context.Context) (*ecs.Client, *ec2.Client, *elasticloadbalancingv2.Client, error) {
@@ -259,7 +268,7 @@ func createRegionClients(regionName string, ctx context.Context) (*ecs.Client, *
 	return ecsClient, ec2Client, elbClient, nil
 }
 
-func listClientClusters(ctx context.Context, client *ecs.Client) ([]*ecsTypes.Cluster, error) {
+func listRegionClusters(ctx context.Context, client *ecs.Client) ([]*ecsTypes.Cluster, error) {
 	// Print detailed request information
 
 	var allClusters []*ecsTypes.Cluster
@@ -298,7 +307,7 @@ func listClientClusters(ctx context.Context, client *ecs.Client) ([]*ecsTypes.Cl
 	return allClusters, nil
 }
 
-func listContainers(client *ecs.Client, clusters []*ecsTypes.Cluster, region string) ([]ContainerData, error) {
+func listRegoinContainers(client *ecs.Client, clusters []*ecsTypes.Cluster, region string) ([]ContainerData, error) {
 
 	allContainers := make([]ContainerData, 0)
 	for _, cluster := range clusters {
@@ -811,7 +820,7 @@ func MapAWSToFlatResource(ctx context.Context, ecsClient *ecs.Client, ec2Client 
 
 		metadata, publicExposed, correlationData := summarizeContainerNetworkAnalysis(container, containerNetworkAnalysis)
 
-		resourceFlat := createStoreResourceFlat(container, metadata, publicExposed, correlationData, region)
+		resourceFlat := containerToResource(container, metadata, publicExposed, correlationData, region)
 
 		flatResourcesList = append(flatResourcesList, resourceFlat)
 	}
@@ -822,7 +831,7 @@ func MapAWSToFlatResource(ctx context.Context, ecsClient *ecs.Client, ec2Client 
 	return flatResourcesList, nil
 }
 
-func createStoreResourceFlat(container ContainerData, metadata map[string]string, publicExposed bool, correlationData string, region string) FlatResourceResult {
+func containerToResource(container ContainerData, metadata map[string]string, publicExposed bool, correlationData string, region string) FlatResourceResult {
 	// Create StoreResourceFlat
 	storeResourceFlat := StoreResourceFlat{
 		Name:          container.ContainerName,
@@ -1017,6 +1026,7 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 		analysis.ExposureReasons = append(analysis.ExposureReasons, "Associated with load balancer")
 	}
 
+	// todo improve this logic , one condition is enough
 	// Determine overall exposure
 	analysis.IsPubliclyExposed = analysis.HasPublicIP || analysis.IsInPublicSubnet || len(analysis.LoadBalancers) > 0
 
