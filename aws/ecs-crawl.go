@@ -16,18 +16,9 @@ import (
 )
 
 type ContainerData struct {
-	Name          string
-	Type          ResourceType
-	Image         string
-	ImageSHA      string
-	Metadata      map[string]string
-	PublicExposed bool
-	Correlation   string
-	ClusterName   string
-	ClusterType   ResourceGroupType
-	ProviderID    string
+	StoreResourceFlat // Embedded base structure
 
-	// extra
+	// Container-specific fields only (no duplicates from StoreResourceFlat)
 	Status          string
 	RuntimeID       string
 	TaskARN         string
@@ -40,7 +31,6 @@ type ContainerData struct {
 	SecurityGroups  string
 	OpenPorts       string
 	ExposureReasons string
-	Region          string
 	Timestamp       string
 }
 
@@ -102,6 +92,42 @@ type ENIAnalysis struct {
 	PrivateIPs       []string
 	PublicIPs        []string
 }
+
+//// containerToStoreResource converts ContainerData to StoreResourceFlat (simple casting)
+//func containerToStoreResource(container ContainerData) StoreResourceFlat {
+//	return container.StoreResourceFlat
+//}
+
+// createContainerData creates a ContainerData object with embedded StoreResourceFlat
+//func createContainerDataWithEmbedded(clusterName, containerName, image, region string) ContainerData {
+//	timestamp := time.Now().Format("2006-01-02 15:04:05")
+//
+//	// Create the embedded StoreResourceFlat
+//	storeResource := StoreResourceFlat{
+//		Name:          containerName,
+//		Type:          ResourceTypeContainer,
+//		Image:         image,
+//		ImageSHA:      "", // Will be populated if available
+//		Metadata:      make(map[string]string),
+//		PublicExposed: false, // Will be determined during analysis
+//		Correlation:   "",    // Will be populated during analysis
+//		ClusterName:   clusterName,
+//		ClusterType:   ResourceGroupTypeECS,
+//		ProviderID:    "aws",
+//		Region:        region,
+//	}
+//
+//	// Add timestamp to metadata
+//	storeResource.Metadata["timestamp"] = timestamp
+//
+//	// Create ContainerData with embedded StoreResourceFlat
+//	containerData := ContainerData{
+//		StoreResourceFlat: storeResource,
+//		Timestamp:         timestamp,
+//	}
+//
+//	return containerData
+//}
 
 func EcsCrawl(roleArn string, regions []types.Region, ctx context.Context) []FlatResourceResult {
 	// Process containers from all regions
@@ -171,7 +197,7 @@ func extractResources(containersData []ContainerData, taskArnContainerNetworkMap
 
 		metadata, publicExposed, correlationData := summarizeContainerNetworkAnalysis(containerData, containerNetworkAnalysis)
 
-		resourceFlatContainer := containerToResource(containerData, metadata, publicExposed, correlationData, regionName)
+		resourceFlatContainer := containerToResource(containerData, metadata, publicExposed, correlationData)
 
 		allResourcesList = append(allResourcesList, resourceFlatContainer)
 	}
@@ -239,13 +265,13 @@ func listRegionContainersData(client *ecs.Client, clusters []*types2.Cluster, re
 	allContainersDataList := make([]ContainerData, 0)
 	for _, cluster := range clusters {
 		fmt.Printf("\n🔍 Processing cluster: %s\n", aws2.ToString(cluster.ClusterName))
-		clusterContainersList, err := listContainersInCluster(client, cluster, region)
+		clusterContainersDataList, err := listContainersInCluster(client, cluster, region)
 		if err != nil {
 			errorMsg := fmt.Sprintf("     ❌ Failed to list containers in cluster %s: %v", aws2.ToString(cluster.ClusterName), err)
 			fmt.Println(errorMsg)
 			return allContainersDataList, err
 		}
-		allContainersDataList = append(allContainersDataList, clusterContainersList...)
+		allContainersDataList = append(allContainersDataList, clusterContainersDataList...)
 	}
 	return allContainersDataList, nil
 }
@@ -565,21 +591,30 @@ func describeTasks(client *ecs.Client, clusterArn string, taskArnList []string) 
 
 // createContainerData creates a ContainerData object from cluster, task, and container information with optional network analysis
 func createContainerData(cluster *types2.Cluster, task *types2.Task, container *types2.Container, networkAnalysis *NetworkExposureAnalysis, region string) ContainerData {
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	//timestamp := time.Now().Format("2006-01-02 15:04:05")
 
 	containerData := ContainerData{
-		ClusterName: aws2.ToString(cluster.ClusterName),
-		Name:        aws2.ToString(container.Name),
-		Image:       aws2.ToString(container.Image),
-		Status:      aws2.ToString(container.LastStatus),
-		RuntimeID:   aws2.ToString(container.RuntimeId),
-		TaskARN:     aws2.ToString(task.TaskArn),
-		TaskStatus:  aws2.ToString(task.LastStatus),
-		Region:      region,
-		Timestamp:   timestamp,
+		StoreResourceFlat: StoreResourceFlat{
+			ClusterName:   aws2.ToString(cluster.ClusterName),
+			Name:          aws2.ToString(container.Name),
+			Type:          ResourceTypeContainer,
+			Image:         aws2.ToString(container.Image),
+			ImageSHA:      "", // Not available in current containerData data
+			Metadata:      make(map[string]string),
+			PublicExposed: false, // Will be updated by summarizeContainerNetworkAnalysis
+			Correlation:   "",    // Will be updated by summarizeContainerNetworkAnalysis
+			ClusterType:   ResourceGroupTypeECS,
+			ProviderID:    "aws",
+			Region:        region,
+		},
+		Status:     aws2.ToString(container.LastStatus),
+		RuntimeID:  aws2.ToString(container.RuntimeId),
+		TaskARN:    aws2.ToString(task.TaskArn),
+		TaskStatus: aws2.ToString(task.LastStatus),
+		Timestamp:  time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	// Network information
+	// Network information - safely handle optional fields
 	if len(container.NetworkBindings) > 0 {
 		binding := container.NetworkBindings[0] // Take first binding
 		if binding.HostPort != nil {
@@ -600,9 +635,15 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 		}
 	}
 
+	// Initialize network analysis fields
+	containerData.NetworkMode = "unknown"
+	containerData.SecurityGroups = ""
+	containerData.OpenPorts = ""
+	containerData.ExposureReasons = ""
+
 	// Enhanced network analysis data
 	if networkAnalysis != nil {
-		containerData.PublicExposed = networkAnalysis.IsPubliclyExposed
+		containerData.StoreResourceFlat.PublicExposed = networkAnalysis.IsPubliclyExposed
 		containerData.NetworkMode = networkAnalysis.NetworkMode
 		if len(networkAnalysis.SecurityGroups) > 0 {
 			containerData.SecurityGroups = fmt.Sprintf("%v", networkAnalysis.SecurityGroups)
@@ -615,7 +656,7 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 		}
 	} else {
 		// Fallback to basic exposure logic
-		containerData.PublicExposed = containerData.HostPort > 0
+		containerData.StoreResourceFlat.PublicExposed = containerData.HostPort > 0
 		containerData.NetworkMode = "unknown"
 	}
 
@@ -641,31 +682,25 @@ func getTaskDetails(ctx context.Context, ecsClient *ecs.Client, clusterName stri
 	return &resp.Tasks[0], nil
 }
 
-func containerToResource(containerData ContainerData, metadata map[string]string, publicExposed bool, correlationData string, region string) FlatResourceResult {
-	// Create StoreResourceFlat
-	storeResourceFlat := StoreResourceFlat{
-		Name:          containerData.Name,
-		Type:          ResourceTypeContainer,
-		Image:         containerData.Image,
-		ImageSHA:      "", // Not available in current containerData data
-		Metadata:      metadata,
-		PublicExposed: publicExposed,
-		Correlation:   correlationData,
-		ClusterName:   containerData.ClusterName,
-		ClusterType:   ResourceGroupTypeECS,
-		ProviderID:    "aws",
-		Region:        region,
-	}
+func containerToResource(containerData ContainerData, metadata map[string]string, publicExposed bool, correlationData string) FlatResourceResult {
+	// Update the embedded StoreResourceFlat with analysis results
+	containerData.StoreResourceFlat.Metadata = metadata
+	containerData.StoreResourceFlat.PublicExposed = publicExposed
+	containerData.StoreResourceFlat.Correlation = correlationData
 
-	// Create result with UUID
+	// Add timestamp to metadata
+	containerData.StoreResourceFlat.Metadata["timestamp"] = time.Now().Format("2006-01-02 15:04:05")
+
+	// Create result with UUID - use the embedded StoreResourceFlat directly
 	result := FlatResourceResult{
 		ID:                uuid.NewString(),
-		StoreResourceFlat: storeResourceFlat,
+		StoreResourceFlat: containerData.StoreResourceFlat, // Simple casting from embedded struct
 	}
 	return result
 }
 
 func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNetworkAnalysis *NetworkExposureAnalysis) (map[string]string, bool, string) {
+	// todo
 	// Create enhanced metadata map
 	metadata := make(map[string]string)
 	metadata["task_status"] = containerData.TaskStatus
@@ -680,6 +715,7 @@ func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNet
 		metadata["container_port"] = strconv.Itoa(containerData.ContainerPort)
 	}
 
+	// todo
 	// Add network analysis data to metadata
 	if containerNetworkAnalysis != nil {
 		metadata["network_mode"] = containerNetworkAnalysis.NetworkMode
@@ -698,7 +734,7 @@ func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNet
 			metadata["network_interfaces"] = fmt.Sprintf("%v", containerNetworkAnalysis.NetworkInterfaces)
 		}
 	}
-
+	// todo : isPubliclyExposed := containerNetworkAnalysis != nil && containerNetworkAnalysis.IsPubliclyExposed
 	// Enhanced public exposure determination
 	var publicExposed bool
 	if containerNetworkAnalysis != nil {
