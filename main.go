@@ -5,10 +5,13 @@ import (
 
 	aws2 "aws-ecs-project/aws"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"log"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -43,15 +46,37 @@ func main() {
 
 	resources := aws2.EcsCrawl(TargetRoleArn, regions, ctx)
 
-	// Print detailed results after all regions are processed
+	// Save detailed results to CSV file after all regions are processed
 	if len(resources) > 0 {
-		fmt.Println("\n📋 Detailed FlatResourceResult (CSV Format):")
-		fmt.Println("============================================")
+		fmt.Printf("💾 Saving %d results to containers.csv...\n", len(resources))
 
-		// Print CSV headers
-		fmt.Println("ID,Name,Type,Image,ImageSHA,PublicExposed,Correlation,ClusterName,ClusterType,ProviderID,Region,Metadata")
+		// Create CSV file
+		file, err := os.Create("containers.csv")
+		if err != nil {
+			log.Printf("❌ Failed to create CSV file: %v", err)
+			return
+		}
+		defer func(file *os.File) {
+			err := file.Close()
+			if err != nil {
+				log.Printf("❌ Failed to close CSV file: %v", err)
+			} else {
+				fmt.Println("✅ CSV file closed successfully")
+			}
+		}(file)
 
-		// Print each result as CSV row
+		// Create CSV writer
+		writer := csv.NewWriter(file)
+		defer writer.Flush()
+
+		// Write CSV headers
+		headers := []string{"ID", "Name", "Type", "Image", "ImageSHA", "PublicExposed", "Correlation", "ClusterName", "ClusterType", "ProviderID", "Region", "Metadata"}
+		if err := writer.Write(headers); err != nil {
+			log.Printf("❌ Failed to write CSV headers: %v", err)
+			return
+		}
+
+		// Write each result as CSV row
 		for _, result := range resources {
 			// Handle metadata - convert map to key=value pairs
 			metadataStr := ""
@@ -60,30 +85,35 @@ func main() {
 				for key, value := range result.StoreResourceFlat.Metadata {
 					metadataPairs = append(metadataPairs, fmt.Sprintf("%s=%s", key, value))
 				}
-				metadataStr = fmt.Sprintf("\"%s\"", strings.Join(metadataPairs, ";"))
+				metadataStr = strings.Join(metadataPairs, ";")
 			}
 
-			// Escape any commas in string fields by wrapping in quotes
-			name := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.Name)
-			image := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.Image)
-			imageSHA := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.ImageSHA)
-			correlation := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.Correlation)
-			clusterName := fmt.Sprintf("\"%s\"", result.StoreResourceFlat.ClusterName)
-
-			fmt.Printf("%s,%s,%s,%s,%s,%t,%s,%s,%s,%s,%s,%s\n",
+			// Create CSV row
+			row := []string{
 				result.ID,
-				name,
-				result.StoreResourceFlat.Type,
-				image,
-				imageSHA,
-				result.StoreResourceFlat.PublicExposed,
-				correlation,
-				clusterName,
-				result.StoreResourceFlat.ClusterType,
+				result.StoreResourceFlat.Name,
+				string(result.StoreResourceFlat.Type),
+				result.StoreResourceFlat.Image,
+				result.StoreResourceFlat.ImageSHA,
+				strconv.FormatBool(result.StoreResourceFlat.PublicExposed),
+				result.StoreResourceFlat.Correlation,
+				result.StoreResourceFlat.ClusterName,
+				string(result.StoreResourceFlat.ClusterType),
 				result.StoreResourceFlat.ProviderID,
 				result.StoreResourceFlat.Region,
-				metadataStr)
+				metadataStr,
+			}
+
+			// Write row to CSV
+			if err := writer.Write(row); err != nil {
+				log.Printf("❌ Failed to write CSV row: %v", err)
+				continue
+			}
 		}
+
+		fmt.Printf("✅ Successfully saved %d container records to containers.csv\n", len(resources))
+	} else {
+		fmt.Println("📝 No containers found to save to CSV")
 	}
 }
 
