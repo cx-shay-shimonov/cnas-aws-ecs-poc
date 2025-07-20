@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-// configures AWS with AssumeRole for a specific region
+// LoadAWSConfig configures AWS with AssumeRole for a specific region
 func LoadAWSConfig(ctx context.Context, region string, roleArn string) (aws2.Config, error) {
 	// Load default configuration first (for initial credentials from SSO)
 	fmt.Printf("📋 Step 1: Loading base SSO credentials for region %s...\n", region)

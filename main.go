@@ -18,6 +18,7 @@ import (
 // Global constant for the target role ARN
 const DefaultRegion = "us-east-1" // Default region for getting all regions
 const TargetRoleArn = "arn:aws:iam::822112283600:role/CnasTargetRole"
+const DebugFastMode = true // Set to true for faster testing, skips region discovery
 
 func main() {
 	// Create a context
@@ -32,28 +33,38 @@ func main() {
 
 	defaultEC2Client := ec2.NewFromConfig(defaultCfg)
 	fmt.Println("✅ EC2 Client created successfully for region discovery")
+	var regionsNames []string
+	if DebugFastMode {
+		regionsNames = []string{"eu-west-2", "us-east-1", "us-east-2"}
+	} else {
+		// Get all AWS regions
+		regions, err := listRegions(ctx, defaultEC2Client)
+		if err != nil {
+			errorMsg := fmt.Sprintf("❌ Failed to get AWS regions: %v", err)
+			fmt.Println(errorMsg)
 
-	// Get all AWS regions
-	regions, err := listRegions(ctx, defaultEC2Client)
-	if err != nil {
-		errorMsg := fmt.Sprintf("❌ Failed to get AWS regions: %v", err)
-		fmt.Println(errorMsg)
-
-		log.Fatalf("Unable to get AWS regions: %v", err)
+			log.Fatalf("Unable to get AWS regions: %v", err)
+		}
+		regionsNames := make([]string, len(regions))
+		for i, region := range regions {
+			regionsNames[i] = aws.ToString(region.RegionName)
+		}
 	}
 
-	fmt.Printf("🌍 Found %d regions to explore: %v\n\n", len(regions), regions)
+	fmt.Printf("🌍 Found %d regions to explore: %v\n\n", len(regionsNames), regionsNames)
 
-	regionsNames := make([]string, len(regions))
-	for i, region := range regions {
-		regionsNames[i] = aws.ToString(region.RegionName)
-	}
 	if len(regionsNames) == 0 {
 		fmt.Printf("No regions found, skipping EKS discovery")
 		//return nil, nil, fmt.Errorf("no regions found")
 	}
 
-	resources := aws2.EcsCrawl(TargetRoleArn, regionsNames, ctx)
+	cfg, err := aws2.LoadAWSConfig(ctx, DefaultRegion, TargetRoleArn)
+	if err != nil {
+		fmt.Printf("❌ Failed to load AWS configuration for role %s: %v\n", TargetRoleArn, err)
+		return
+	}
+
+	resources := aws2.EcsCrawl(regionsNames, ctx, cfg)
 
 	// Save detailed results to CSV file after all regions are processed
 	if len(resources) > 0 {

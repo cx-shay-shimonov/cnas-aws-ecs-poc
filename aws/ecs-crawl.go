@@ -1,7 +1,6 @@
 package aws
 
 import (
-	//main2 "aws-ecs-project"
 	"context"
 	"fmt"
 	aws2 "github.com/aws/aws-sdk-go-v2/aws"
@@ -93,13 +92,13 @@ type ENIAnalysis struct {
 	PublicIPs        []string
 }
 
-func EcsCrawl(roleArn string, regions []string, ctx context.Context) []FlatResourceResult {
+func EcsCrawl(regions []string, ctx context.Context, cfg aws2.Config) []FlatResourceResult {
 	// Process containers from all regions
 	var allResources []FlatResourceResult
 
 	for _, region := range regions {
-		regionName := region
-		regionResources, err := extractRegionResources(regionName, ctx, roleArn)
+		cfg.Region = region // Set the region in the config
+		regionResources, err := extractRegionResources(region, ctx, cfg)
 		if err != nil {
 			continue
 		}
@@ -108,8 +107,8 @@ func EcsCrawl(roleArn string, regions []string, ctx context.Context) []FlatResou
 	return allResources
 }
 
-func extractRegionResources(regionName string, ctx context.Context, roleArn string) ([]FlatResourceResult, error) {
-	ecsClient, ec2Client, elbClient, err := createRegionClients(regionName, ctx, roleArn)
+func extractRegionResources(regionName string, ctx context.Context, cfg aws2.Config) ([]FlatResourceResult, error) {
+	ecsClient, ec2Client, elbClient, err := createRegionClients(regionName, cfg)
 	totalContainers := 0
 
 	if err != nil {
@@ -170,13 +169,7 @@ func extractResources(containersData []ContainerData, taskArnContainerNetworkMap
 	return allResourcesList
 }
 
-func createRegionClients(regionName string, ctx context.Context, roleArn string) (*ecs.Client, *ec2.Client, *elasticloadbalancingv2.Client, error) {
-	cfg, err := LoadAWSConfig(ctx, regionName, roleArn)
-	if err != nil {
-		fmt.Printf("⚠️ Failed to load AWS config for region %s: %v\n", regionName, err)
-		return nil, nil, nil, err
-		//continue
-	}
+func createRegionClients(regionName string, cfg aws2.Config) (*ecs.Client, *ec2.Client, *elasticloadbalancingv2.Client, error) {
 	// Create clients for this region
 	fmt.Printf("🔧 Creating AWS clients for region %s...\n", regionName)
 	ecsClient := ecs.NewFromConfig(cfg)
