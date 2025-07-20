@@ -44,7 +44,7 @@ node_modules/
 *.log
 
 # Environment files
-.env
+#is-needed.env
 .env.local
 .env.*.local
 
