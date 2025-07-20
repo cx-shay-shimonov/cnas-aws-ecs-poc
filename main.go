@@ -44,7 +44,16 @@ func main() {
 
 	fmt.Printf("🌍 Found %d regions to explore: %v\n\n", len(regions), regions)
 
-	resources := aws2.EcsCrawl(TargetRoleArn, regions, ctx)
+	regionsNames := make([]string, len(regions))
+	for i, region := range regions {
+		regionsNames[i] = aws.ToString(region.RegionName)
+	}
+	if len(regionsNames) == 0 {
+		fmt.Printf("No regions found, skipping EKS discovery")
+		//return nil, nil, fmt.Errorf("no regions found")
+	}
+
+	resources := aws2.EcsCrawl(TargetRoleArn, regionsNames, ctx)
 
 	// Save detailed results to CSV file after all regions are processed
 	if len(resources) > 0 {

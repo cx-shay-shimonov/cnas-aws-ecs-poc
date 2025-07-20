@@ -93,48 +93,12 @@ type ENIAnalysis struct {
 	PublicIPs        []string
 }
 
-//// containerToStoreResource converts ContainerData to StoreResourceFlat (simple casting)
-//func containerToStoreResource(container ContainerData) StoreResourceFlat {
-//	return container.StoreResourceFlat
-//}
-
-// createContainerData creates a ContainerData object with embedded StoreResourceFlat
-//func createContainerDataWithEmbedded(clusterName, containerName, image, region string) ContainerData {
-//	timestamp := time.Now().Format("2006-01-02 15:04:05")
-//
-//	// Create the embedded StoreResourceFlat
-//	storeResource := StoreResourceFlat{
-//		Name:          containerName,
-//		Type:          ResourceTypeContainer,
-//		Image:         image,
-//		ImageSHA:      "", // Will be populated if available
-//		Metadata:      make(map[string]string),
-//		PublicExposed: false, // Will be determined during analysis
-//		Correlation:   "",    // Will be populated during analysis
-//		ClusterName:   clusterName,
-//		ClusterType:   ResourceGroupTypeECS,
-//		ProviderID:    "aws",
-//		Region:        region,
-//	}
-//
-//	// Add timestamp to metadata
-//	storeResource.Metadata["timestamp"] = timestamp
-//
-//	// Create ContainerData with embedded StoreResourceFlat
-//	containerData := ContainerData{
-//		StoreResourceFlat: storeResource,
-//		Timestamp:         timestamp,
-//	}
-//
-//	return containerData
-//}
-
-func EcsCrawl(roleArn string, regions []types.Region, ctx context.Context) []FlatResourceResult {
+func EcsCrawl(roleArn string, regions []string, ctx context.Context) []FlatResourceResult {
 	// Process containers from all regions
 	var allResources []FlatResourceResult
 
 	for _, region := range regions {
-		regionName := aws2.ToString(region.RegionName)
+		regionName := region
 		regionResources, err := extractRegionResources(regionName, ctx, roleArn)
 		if err != nil {
 			continue
