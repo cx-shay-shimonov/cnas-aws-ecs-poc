@@ -6,9 +6,10 @@ import (
 	cnasAws "aws-ecs-project/aws"
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"log"
 )
 
 // Global constant for the target role ARN
@@ -41,11 +42,11 @@ func main() {
 
 			log.Fatalf("Unable to get AWS regions: %v", err)
 		}
-		regionsNames := make([]string, 0)
+		regionsNames = make([]string, 0)
 		for _, region := range regions {
 			regionsNames = append(regionsNames, aws.ToString(region.RegionName))
 		}
-		fmt.Printf("✅ Found %d AWS regions: %v\n", len(regions), regionsNames)
+		fmt.Printf("✅ Found %d AWS regions: %v\n", len(regionsNames), regionsNames)
 	}
 
 	fmt.Printf("🌍 Found %d regions to explore: %v\n\n", len(regionsNames), regionsNames)
@@ -63,16 +64,40 @@ func main() {
 
 	resources := cnasAws.EcsCrawl(regionsNames, ctx, cfg)
 
-	// Save detailed results to CSV file after all regions are processed
+	// Save detailed results to CSV and JSON files after all regions are processed
 	if len(resources) > 0 {
-		success := cnasAws.ExportCSV(resources)
-		if !success {
+		// Create channels to receive results from concurrent operations
+		csvChan := make(chan bool, 1)
+		jsonChan := make(chan bool, 1)
+
+		// Run ExportCSV concurrently
+		go func() {
+			csvChan <- cnasAws.ExportCSV(resources)
+		}()
+
+		// Run ExportJSON concurrently
+		go func() {
+			jsonChan <- cnasAws.ExportJSON(resources)
+		}()
+
+		// Wait for both operations to complete and collect results
+		csvSuccess := <-csvChan
+		jsonSuccess := <-jsonChan
+
+		// Report results
+		if !csvSuccess {
 			fmt.Println("❌ Failed to save results to CSV file")
 		} else {
 			fmt.Println("✅ Results saved to containers.csv successfully")
 		}
+
+		if !jsonSuccess {
+			fmt.Println("❌ Failed to save results to JSON file")
+		} else {
+			fmt.Println("✅ Results saved to containers.json successfully")
+		}
 	} else {
-		fmt.Println("📝 No containers found to save to CSV")
+		fmt.Println("📝 No containers found to save to CSV or JSON")
 	}
 }
 

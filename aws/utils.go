@@ -2,6 +2,7 @@ package aws
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -74,5 +75,40 @@ func ExportCSV(resources []FlatResourceResult) bool {
 	}
 
 	fmt.Printf("✅ Successfully saved %d container records to containers.csv\n", len(resources))
+	return true
+}
+
+func ExportJSON(resources []FlatResourceResult) bool {
+	fmt.Printf("💾 Saving %d results to containers.json...\n", len(resources))
+
+	// Create JSON file
+	file, err := os.Create("containers.json")
+	if err != nil {
+		log.Printf("❌ Failed to create JSON file: %v", err)
+		return false
+	}
+	defer func( /*file *os.File*/ ) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("❌ Failed to close JSON file: %v", err)
+		} else {
+			fmt.Println("✅ JSON file closed successfully")
+		}
+	}( /*file*/ )
+
+	// Convert resources to JSON with pretty printing
+	jsonData, err := json.MarshalIndent(resources, "", "  ")
+	if err != nil {
+		log.Printf("❌ Failed to marshal JSON data: %v", err)
+		return false
+	}
+
+	// Write JSON data to file
+	if _, err := file.Write(jsonData); err != nil {
+		log.Printf("❌ Failed to write JSON data: %v", err)
+		return false
+	}
+
+	fmt.Printf("✅ Successfully saved %d container records to containers.json\n", len(resources))
 	return true
 }
