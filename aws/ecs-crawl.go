@@ -579,7 +579,6 @@ func describeTasks(client *ecs.Client, clusterArn string, taskArnList []string) 
 
 // createContainerData creates a ContainerData object from cluster, task, and container information with optional network analysis
 func createContainerData(cluster *types2.Cluster, task *types2.Task, container *types2.Container, networkAnalysis *NetworkExposureAnalysis, region string) ContainerData {
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
 
 	containerData := ContainerData{
 		ClusterName: aws2.ToString(cluster.ClusterName),
@@ -591,7 +590,7 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 		TaskStatus:  aws2.ToString(task.LastStatus),
 		Metadata:    make(map[string]string),
 		Region:      region,
-		Timestamp:   timestamp,
+		Timestamp:   time.Now().Format("2006-01-02 15:04:05"),
 	}
 	containerData.Metadata["strat-timestamp"] = time.Now().Format("2006-01-02 15:04:05")
 

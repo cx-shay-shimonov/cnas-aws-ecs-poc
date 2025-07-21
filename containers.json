@@ -1,6 +1,6 @@
 [
   {
-    "ID": "d2fbcaad-25c6-4dbf-8db9-a044494ac32b",
+    "ID": "c1ef8182-a15e-48ff-a5aa-43ee040c76b6",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-o3DQRY",
       "Type": "CONTAINER",
@@ -16,7 +16,7 @@
     }
   },
   {
-    "ID": "950c9c01-bd32-4f40-a692-1cb0af304e8e",
+    "ID": "aafd7ecd-1421-4ccc-b2a8-e65ce99afeb8",
     "StoreResourceFlat": {
       "Name": "php-demo-service",
       "Type": "CONTAINER",
@@ -32,7 +32,7 @@
     }
   },
   {
-    "ID": "a258761a-6167-4215-9e47-5237e63686a7",
+    "ID": "6a48cc3a-c658-4d08-add6-7a168bf5148d",
     "StoreResourceFlat": {
       "Name": "nginx-container-2",
       "Type": "CONTAINER",
@@ -48,7 +48,7 @@
     }
   },
   {
-    "ID": "4cc7cd2e-ea46-48d7-9692-98025d4e06ed",
+    "ID": "f3c619aa-9961-4fa2-ad5f-302c3f403ff2",
     "StoreResourceFlat": {
       "Name": "nginx-container",
       "Type": "CONTAINER",
@@ -64,7 +64,7 @@
     }
   },
   {
-    "ID": "04993e99-207c-438b-8ca6-a49eea588eb0",
+    "ID": "3d637e84-b72c-4c51-ad44-4936cb699355",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-60JfD",
       "Type": "CONTAINER",
