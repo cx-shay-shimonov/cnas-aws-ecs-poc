@@ -159,9 +159,9 @@ func EcsCrawl(regions []string, ctx context.Context, cfg aws2.Config) []FlatReso
 			// Get network analysis for this containerData's task
 			containerNetworkAnalysis := taskArnContainerNetworkMap[containerData.TaskARN]
 
-			publicExposed, correlationData := summarizeContainerNetworkAnalysis(containerData, containerNetworkAnalysis)
+			publicExposed /*, correlationData*/ := summarizeContainerNetworkAnalysis(containerData, containerNetworkAnalysis)
 
-			resourceFlatContainer := containerToResource(containerData, publicExposed, correlationData)
+			resourceFlatContainer := containerToResource(containerData, publicExposed /*, correlationData*/)
 
 			allResourcesList = append(allResourcesList, resourceFlatContainer)
 		}
@@ -677,7 +677,6 @@ func describeTasks(client *ecs.Client, clusterArn string, taskArnList []string) 
 
 // createContainerData creates a ContainerData object from cluster, task, and container information with optional network analysis
 func createContainerData(cluster *types2.Cluster, task *types2.Task, container *types2.Container, networkAnalysis *NetworkExposureAnalysis, region string) ContainerData {
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
 
 	containerData := ContainerData{
 		ClusterName: aws2.ToString(cluster.ClusterName),
@@ -689,7 +688,7 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 		TaskStatus:  aws2.ToString(task.LastStatus),
 		Metadata:    make(map[string]string),
 		Region:      region,
-		Timestamp:   timestamp,
+		Timestamp:   time.Now().Format("2006-01-02 15:04:05"),
 	}
 	containerData.Metadata["strat-timestamp"] = time.Now().Format("2006-01-02 15:04:05")
 
@@ -741,29 +740,26 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 	return containerData
 }
 
-func containerToResource(containerData ContainerData, publicExposed bool, correlationData string) FlatResourceResult {
-	// Create StoreResourceFlat
-	storeResourceFlat := StoreResourceFlat{
-		Name:     containerData.Name,
-		Type:     ResourceTypeContainer,
-		Image:    containerData.Image,
-		ImageSha: "", // Not available in current containerData data
-		//Metadata:      metadata,
-		PublicExposed: publicExposed,
-		Correlation:   correlationData,
-		ClusterName:   containerData.ClusterName,
-		ClusterType:   ResourceGroupTypeECS,
-		ProviderID:    "aws",
-		Region:        containerData.Region,
-	}
-
+func containerToResource(containerData ContainerData, publicExposed bool /*, correlationData string*/) FlatResourceResult {
 	// Add timestamp to metadata
 	containerData.Metadata["end-timestamp"] = time.Now().Format("2006-01-02 15:04:05")
 
 	// Create result with UUID - use the embedded StoreResourceFlat directly
 	result := FlatResourceResult{
-		ID:                uuid.NewString(),
-		StoreResourceFlat: storeResourceFlat,
+		ID: uuid.NewString(),
+		StoreResourceFlat: StoreResourceFlat{
+			Name:     containerData.Name,
+			Type:     ResourceTypeContainer,
+			Image:    containerData.Image,
+			ImageSha: "", // Not available in current containerData data
+			//Metadata:      metadata,
+			PublicExposed: publicExposed,
+			Correlation:   "", //correlationData,
+			ClusterName:   containerData.ClusterName,
+			ClusterType:   ResourceGroupTypeECS,
+			ProviderID:    "aws",
+			Region:        containerData.Region,
+		},
 	}
 	return result
 }
@@ -776,7 +772,7 @@ func createTaskArnContainerMap(containerData []ContainerData) map[string]Contain
 	return taskArnContainerDataMap
 }
 
-func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNetworkAnalysis *NetworkExposureAnalysis) (bool, string) {
+func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNetworkAnalysis *NetworkExposureAnalysis) bool {
 	// todo
 	// Create enhanced metadata map
 	metadata := containerData.Metadata
@@ -822,14 +818,14 @@ func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNet
 	}
 
 	// Create enhanced correlation string with network data
-	correlationData := fmt.Sprintf("runtime_id:%s,task_arn:%s", containerData.RuntimeID, containerData.TaskARN)
-	if containerData.PrivateIP != "" {
-		correlationData += fmt.Sprintf(",private_ip:%s", containerData.PrivateIP)
-	}
-	if containerNetworkAnalysis != nil && len(containerNetworkAnalysis.PublicIPs) > 0 {
-		correlationData += fmt.Sprintf(",public_ips:%v", containerNetworkAnalysis.PublicIPs)
-	}
-	return publicExposed, correlationData
+	//correlationData := fmt.Sprintf("runtime_id:%s,task_arn:%s", containerData.RuntimeID, containerData.TaskARN)
+	//if containerData.PrivateIP != "" {
+	//	correlationData += fmt.Sprintf(",private_ip:%s", containerData.PrivateIP)
+	//}
+	//if containerNetworkAnalysis != nil && len(containerNetworkAnalysis.PublicIPs) > 0 {
+	//	correlationData += fmt.Sprintf(",public_ips:%v", containerNetworkAnalysis.PublicIPs)
+	//}
+	return publicExposed //, correlationData
 }
 
 func listRegionContainersData(client *ecs.Client, clusters []*types2.Cluster, region string) ([]ContainerData, error) {

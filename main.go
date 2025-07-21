@@ -41,17 +41,17 @@ func main() {
 
 			log.Fatalf("Unable to get AWS regions: %v", err)
 		}
-		regionsNames := make([]string, 0)
+		regionsNames = make([]string, 0)
 		for _, region := range regions {
 			regionsNames = append(regionsNames, aws.ToString(region.RegionName))
 		}
-		fmt.Printf("✅ Found %d AWS regions: %v\n", len(regions), regionsNames)
+		fmt.Printf("✅ Found %d AWS regions: %v\n", len(regionsNames), regionsNames)
 	}
 
 	fmt.Printf("🌍 Found %d regions to explore: %v\n\n", len(regionsNames), regionsNames)
 
 	if len(regionsNames) == 0 {
-		fmt.Printf("No regions found, skipping EKS discovery")
+		fmt.Printf("No regions found, skipping discovery")
 		//return nil, nil, fmt.Errorf("no regions found")
 	}
 
