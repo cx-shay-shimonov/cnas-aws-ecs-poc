@@ -51,7 +51,7 @@ type StoreResourceFlat struct {
 	Name          string
 	Type          ResourceType
 	Image         string
-	ImageSHA      string
+	ImageSha      string // todo: Implement image SHA extraction
 	Metadata      map[string]string
 	PublicExposed bool
 	Correlation   string
@@ -556,7 +556,7 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 			Name:          aws2.ToString(container.Name),
 			Type:          ResourceTypeContainer,
 			Image:         aws2.ToString(container.Image),
-			ImageSHA:      "", // Not available in current containerData data
+			ImageSha:      "", // Not available in current containerData data
 			Metadata:      make(map[string]string),
 			PublicExposed: false, // Will be updated by summarizeContainerNetworkAnalysis
 			Correlation:   "",    // Will be updated by summarizeContainerNetworkAnalysis

@@ -3,28 +3,24 @@ package main
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 
-	aws2 "aws-ecs-project/aws"
+	cnasAws "aws-ecs-project/aws"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"log"
-	"os"
-	"strconv"
-	"strings"
 )
 
 // Global constant for the target role ARN
 const DefaultRegion = "us-east-1" // Default region for getting all regions
 const TargetRoleArn = "arn:aws:iam::822112283600:role/CnasTargetRole"
-const DebugFastMode = true // Set to true for faster testing, skips region discovery
+const DebugFastMode = false // Set to true for faster testing, skips region discovery
 
 func main() {
 	// Create a context
 	ctx := context.TODO()
 
-	defaultCfg, err := aws2.LoadAWSConfig(ctx, DefaultRegion, TargetRoleArn)
+	defaultCfg, err := cnasAws.LoadAWSConfig(ctx, DefaultRegion, TargetRoleArn)
 	if err != nil {
 		errorMsg := fmt.Sprintf("❌ AWS Configuration failed for default region %s: %v", DefaultRegion, err)
 		fmt.Println(errorMsg)
@@ -45,10 +41,11 @@ func main() {
 
 			log.Fatalf("Unable to get AWS regions: %v", err)
 		}
-		regionsNames := make([]string, len(regions))
-		for i, region := range regions {
-			regionsNames[i] = aws.ToString(region.RegionName)
+		regionsNames := make([]string, 0)
+		for _, region := range regions {
+			regionsNames = append(regionsNames, aws.ToString(region.RegionName))
 		}
+		fmt.Printf("✅ Found %d AWS regions: %v\n", len(regions), regionsNames)
 	}
 
 	fmt.Printf("🌍 Found %d regions to explore: %v\n\n", len(regionsNames), regionsNames)
@@ -58,80 +55,22 @@ func main() {
 		//return nil, nil, fmt.Errorf("no regions found")
 	}
 
-	cfg, err := aws2.LoadAWSConfig(ctx, DefaultRegion, TargetRoleArn)
+	cfg, err := cnasAws.LoadAWSConfig(ctx, DefaultRegion, TargetRoleArn)
 	if err != nil {
 		fmt.Printf("❌ Failed to load AWS configuration for role %s: %v\n", TargetRoleArn, err)
 		return
 	}
 
-	resources := aws2.EcsCrawl(regionsNames, ctx, cfg)
+	resources := cnasAws.EcsCrawl(regionsNames, ctx, cfg)
 
 	// Save detailed results to CSV file after all regions are processed
 	if len(resources) > 0 {
-		fmt.Printf("💾 Saving %d results to containers.csv...\n", len(resources))
-
-		// Create CSV file
-		file, err := os.Create("containers.csv")
-		if err != nil {
-			log.Printf("❌ Failed to create CSV file: %v", err)
-			return
+		success := cnasAws.ExportCSV(resources)
+		if !success {
+			fmt.Println("❌ Failed to save results to CSV file")
+		} else {
+			fmt.Println("✅ Results saved to containers.csv successfully")
 		}
-		defer func(file *os.File) {
-			err := file.Close()
-			if err != nil {
-				log.Printf("❌ Failed to close CSV file: %v", err)
-			} else {
-				fmt.Println("✅ CSV file closed successfully")
-			}
-		}(file)
-
-		// Create CSV writer
-		writer := csv.NewWriter(file)
-		defer writer.Flush()
-
-		// Write CSV headers
-		headers := []string{"ID", "Name", "Type", "Image", "ImageSHA", "PublicExposed", "Correlation", "ClusterName", "ClusterType", "ProviderID", "Region", "Metadata"}
-		if err := writer.Write(headers); err != nil {
-			log.Printf("❌ Failed to write CSV headers: %v", err)
-			return
-		}
-
-		// Write each result as CSV row
-		for _, result := range resources {
-			// Handle metadata - convert map to key=value pairs
-			metadataStr := ""
-			if len(result.StoreResourceFlat.Metadata) > 0 {
-				var metadataPairs []string
-				for key, value := range result.StoreResourceFlat.Metadata {
-					metadataPairs = append(metadataPairs, fmt.Sprintf("%s=%s", key, value))
-				}
-				metadataStr = strings.Join(metadataPairs, ";")
-			}
-
-			// Create CSV row
-			row := []string{
-				result.ID,
-				result.StoreResourceFlat.Name,
-				string(result.StoreResourceFlat.Type),
-				result.StoreResourceFlat.Image,
-				result.StoreResourceFlat.ImageSHA,
-				strconv.FormatBool(result.StoreResourceFlat.PublicExposed),
-				result.StoreResourceFlat.Correlation,
-				result.StoreResourceFlat.ClusterName,
-				string(result.StoreResourceFlat.ClusterType),
-				result.StoreResourceFlat.ProviderID,
-				result.StoreResourceFlat.Region,
-				metadataStr,
-			}
-
-			// Write row to CSV
-			if err := writer.Write(row); err != nil {
-				log.Printf("❌ Failed to write CSV row: %v", err)
-				continue
-			}
-		}
-
-		fmt.Printf("✅ Successfully saved %d container records to containers.csv\n", len(resources))
 	} else {
 		fmt.Println("📝 No containers found to save to CSV")
 	}
