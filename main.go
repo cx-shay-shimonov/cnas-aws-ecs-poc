@@ -63,16 +63,23 @@ func main() {
 
 	resources := cnasAws.EcsCrawl(regionsNames, ctx, cfg)
 
-	// Save detailed results to CSV file after all regions are processed
+	// Save detailed results to CSV and JSON files after all regions are processed
 	if len(resources) > 0 {
-		success := cnasAws.ExportCSV(resources)
-		if !success {
+		csvSuccess := cnasAws.ExportCSV(resources)
+		if !csvSuccess {
 			fmt.Println("❌ Failed to save results to CSV file")
 		} else {
 			fmt.Println("✅ Results saved to containers.csv successfully")
 		}
+
+		jsonSuccess := cnasAws.ExportJSON(resources)
+		if !jsonSuccess {
+			fmt.Println("❌ Failed to save results to JSON file")
+		} else {
+			fmt.Println("✅ Results saved to containers.json successfully")
+		}
 	} else {
-		fmt.Println("📝 No containers found to save to CSV")
+		fmt.Println("📝 No containers found to save to CSV or JSON")
 	}
 }
 
