@@ -6,9 +6,10 @@ import (
 	cnasAws "aws-ecs-project/aws"
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"log"
 )
 
 // Global constant for the target role ARN
@@ -65,14 +66,31 @@ func main() {
 
 	// Save detailed results to CSV and JSON files after all regions are processed
 	if len(resources) > 0 {
-		csvSuccess := cnasAws.ExportCSV(resources)
+		// Create channels to receive results from concurrent operations
+		csvChan := make(chan bool, 1)
+		jsonChan := make(chan bool, 1)
+
+		// Run ExportCSV concurrently
+		go func() {
+			csvChan <- cnasAws.ExportCSV(resources)
+		}()
+
+		// Run ExportJSON concurrently
+		go func() {
+			jsonChan <- cnasAws.ExportJSON(resources)
+		}()
+
+		// Wait for both operations to complete and collect results
+		csvSuccess := <-csvChan
+		jsonSuccess := <-jsonChan
+
+		// Report results
 		if !csvSuccess {
 			fmt.Println("❌ Failed to save results to CSV file")
 		} else {
 			fmt.Println("✅ Results saved to containers.csv successfully")
 		}
 
-		jsonSuccess := cnasAws.ExportJSON(resources)
 		if !jsonSuccess {
 			fmt.Println("❌ Failed to save results to JSON file")
 		} else {
