@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	aws2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
@@ -104,7 +104,9 @@ type ENIAnalysis struct {
 	PublicIPs        []string
 }
 
-func EcsCrawl(regions []string, ctx context.Context, cfg aws2.Config) []FlatResourceResult {
+func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger InfoLogger) []FlatResourceResult {
+	log := CreatePrefixedLogger(logger, "🐳 ECS Crawler: ")
+
 	// Process containers from all regions in parallel
 	allResources := make([]FlatResourceResult, 0)
 	var wg sync.WaitGroup
@@ -119,9 +121,9 @@ func EcsCrawl(regions []string, ctx context.Context, cfg aws2.Config) []FlatReso
 			regionCfg := cfg.Copy()
 			regionCfg.Region = regionName
 
-			regionResources, err := extractRegionResources(regionName, ctx, regionCfg)
+			regionResources, err := extractRegionResources(regionName, ctx, regionCfg, log)
 			if err != nil {
-				fmt.Printf("⚠️ Failed to process region %s: %v\n", regionName, err)
+				log("Failed to process region %s: %v", regionName, err)
 				return
 			}
 
@@ -134,54 +136,52 @@ func EcsCrawl(regions []string, ctx context.Context, cfg aws2.Config) []FlatReso
 
 	// Wait for all regions to complete
 	wg.Wait()
+	log("Completed processing %d regions, found %d total resources", len(regions), len(allResources))
 	return allResources
 }
 
-func extractRegionResources(regionName string, ctx context.Context, cfg aws2.Config) ([]FlatResourceResult, error) {
-	ecsClient, ec2Client, elbClient, err := createRegionClients(regionName, cfg)
+func extractRegionResources(regionName string, ctx context.Context, cfg aws.Config, log LogFunc) ([]FlatResourceResult, error) {
+	ecsClient, ec2Client, elbClient := createRegionClients(regionName, cfg, log)
 	totalContainers := 0
 
-	if err != nil {
-		return nil, err
-	}
 	// List containers in this region
-	fmt.Printf("🐳 Listing ECS containers in region %s...\n", regionName)
+	log("🐳 Listing ECS containers in region %s...", regionName)
 
-	regionClustersList, err := listRegionClusters(ctx, ecsClient)
+	regionClustersList, err := listRegionClusters(ctx, ecsClient, log)
 	if err != nil {
-		fmt.Printf("failed to list client regionClustersList: %s", err.Error())
+		log("failed to list client regionClustersList: %s", err.Error())
 		return nil, fmt.Errorf("failed to list client regionClustersList: %w", err)
 	}
-	regionContainersDataList, err := listRegionContainersData(ecsClient, regionClustersList, regionName)
+	regionContainersDataList, err := listRegionContainersData(ecsClient, regionClustersList, regionName, log)
 
 	if err != nil {
-		fmt.Printf("⚠️ ECS operation failed in region %s: %v\n", regionName, err)
+		log("ECS operation failed in region %s: %v", regionName, err)
 		return nil, err
 	}
 
-	fmt.Printf("📊 Found %d containers in region %s\n", len(regionContainersDataList), regionName)
+	log("📊 Found %d containers in region %s", len(regionContainersDataList), regionName)
 	totalContainers += len(regionContainersDataList)
 
 	// Perform network analysis and generate flat resources
 	if len(regionContainersDataList) <= 0 {
-		fmt.Printf("📝 No containers found in region %s\n", regionName)
+		log("📝 No containers found in region %s", regionName)
 		return nil, fmt.Errorf("no containers found in region %s", regionName)
 	}
-	fmt.Printf("🔍 Analyzing network exposure for region %s...\n", regionName)
+	log("🔍 Analyzing network exposure for region %s...", regionName)
 	// container by task ARN for network analysis
 	taskArnContainerMap := createTaskArnContainerMap(regionContainersDataList)
 
 	// Analyze each container task's network exposure
-	taskArnContainerNetworkMap := createTaskArnContainerNetworkMap(ctx, ecsClient, ec2Client, elbClient, taskArnContainerMap)
+	taskArnContainerNetworkMap := createTaskArnContainerNetworkMap(ctx, ecsClient, ec2Client, elbClient, taskArnContainerMap, log)
 
-	regionResourcesList := extractResources(regionContainersDataList, taskArnContainerNetworkMap)
+	regionResourcesList := extractResources(regionContainersDataList, taskArnContainerNetworkMap, log)
 
-	fmt.Printf("✅ Successfully analyzed %d containers in region %s\n", len(regionResourcesList), regionName)
+	log("✅ Successfully analyzed %d containers in region %s", len(regionResourcesList), regionName)
 
 	return regionResourcesList, nil
 }
 
-func extractResources(containersData []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis) []FlatResourceResult {
+func extractResources(containersData []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis, log LogFunc) []FlatResourceResult {
 	var allResourcesList []FlatResourceResult
 	// Map each containerData to FlatResourceResult with enhanced network data
 	for _, containerData := range containersData {
@@ -195,20 +195,21 @@ func extractResources(containersData []ContainerData, taskArnContainerNetworkMap
 		allResourcesList = append(allResourcesList, resourceFlatContainer)
 	}
 
-	fmt.Printf("📄 MapAWSToFlatResource Results Summary: Generated %d flat resources\n", len(allResourcesList))
+	log("📄 MapAWSToFlatResource Results Summary: Generated %d flat resources", len(allResourcesList))
 	return allResourcesList
 }
 
-func createRegionClients(regionName string, cfg aws2.Config) (*ecs.Client, *ec2.Client, *elasticloadbalancingv2.Client, error) {
+func createRegionClients(regionName string, cfg aws.Config, log LogFunc) (*ecs.Client, *ec2.Client, *elasticloadbalancingv2.Client) {
 	// Create clients for this region
-	fmt.Printf("🔧 Creating AWS clients for region %s...\n", regionName)
+	//cfg.Region = regionName // todo why setting again the region name , it should be an instance with the region all ready
+	log("🔧 Creating AWS clients for region %s...", regionName)
 	ecsClient := ecs.NewFromConfig(cfg)
 	ec2Client := ec2.NewFromConfig(cfg)
 	elbClient := elasticloadbalancingv2.NewFromConfig(cfg)
-	return ecsClient, ec2Client, elbClient, nil
+	return ecsClient, ec2Client, elbClient
 }
 
-func listRegionClusters(ctx context.Context, client *ecs.Client) ([]*types2.Cluster, error) {
+func listRegionClusters(ctx context.Context, client *ecs.Client, log LogFunc) ([]*types2.Cluster, error) {
 	// Print detailed request information
 
 	var allClusters []*types2.Cluster
@@ -224,21 +225,19 @@ func listRegionClusters(ctx context.Context, client *ecs.Client) ([]*types2.Clus
 
 	// Success - print results
 	for i, clusterArn := range clustersList.ClusterArns {
-		fmt.Printf("\n  %d. %s\n", i+1, clusterArn)
+		log("  %d. %s", i+1, clusterArn)
 
 		// Describe each cluster
-		fmt.Printf("     🔍 Describing cluster details...\n")
+		log("     🔍 Describing cluster details...")
 
 		cluster, err := DescribeCluster(client, clusterArn)
 		if err != nil {
-			errorMsg := fmt.Sprintf("     ❌ Failed to describe cluster %s: %v", clusterArn, err)
-			fmt.Println(errorMsg)
+			log("     ❌ Failed to describe cluster %s: %v", clusterArn, err)
 			continue
 		}
 
 		if cluster == nil {
-			noDataMsg := "     ⚠️ No cluster data returned"
-			fmt.Println(noDataMsg)
+			log("     ⚠️ No cluster data returned")
 			continue
 		}
 		allClusters = append(allClusters, cluster)
@@ -247,15 +246,14 @@ func listRegionClusters(ctx context.Context, client *ecs.Client) ([]*types2.Clus
 	return allClusters, nil
 }
 
-func listRegionContainersData(client *ecs.Client, clusters []*types2.Cluster, region string) ([]ContainerData, error) {
+func listRegionContainersData(client *ecs.Client, clusters []*types2.Cluster, region string, log LogFunc) ([]ContainerData, error) {
 
 	allContainersDataList := make([]ContainerData, 0)
 	for _, cluster := range clusters {
-		fmt.Printf("\n🔍 Processing cluster: %s\n", aws2.ToString(cluster.ClusterName))
-		clusterContainersDataList, err := listContainersInCluster(client, cluster, region)
+		log("🔍 Processing cluster: %s", aws.ToString(cluster.ClusterName))
+		clusterContainersDataList, err := listContainersInCluster(client, cluster, region, log)
 		if err != nil {
-			errorMsg := fmt.Sprintf("     ❌ Failed to list containers in cluster %s: %v", aws2.ToString(cluster.ClusterName), err)
-			fmt.Println(errorMsg)
+			log("     ❌ Failed to list containers in cluster %s: %v", aws.ToString(cluster.ClusterName), err)
 			return allContainersDataList, err
 		}
 		allContainersDataList = append(allContainersDataList, clusterContainersDataList...)
@@ -263,37 +261,31 @@ func listRegionContainersData(client *ecs.Client, clusters []*types2.Cluster, re
 	return allContainersDataList, nil
 }
 
-func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region string) ([]ContainerData, error) {
-	clusterArn := aws2.ToString(cluster.ClusterArn)
-	clusterName := aws2.ToString(cluster.ClusterName)
-	fmt.Printf("     🔍 Listing containersDataList in cluster: %s\n", clusterName)
+func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region string, log LogFunc) ([]ContainerData, error) {
+	clusterArn := aws.ToString(cluster.ClusterArn)
+	clusterName := aws.ToString(cluster.ClusterName)
+	log("     🔍 Listing containersDataList in cluster: %s", clusterName)
 
 	var containersDataList []ContainerData
 
 	// Get tasks in the cluster
 	taskArnList, err := listTasks(client, clusterArn)
 	if err != nil {
-		errorMsg := fmt.Sprintf("     ❌ Failed to list tasks in cluster %s: %v", clusterName, err)
-		fmt.Println(errorMsg)
-
+		log("     ❌ Failed to list tasks in cluster %s: %v", clusterName, err)
 		return nil, err
 	}
 
 	if len(taskArnList) == 0 {
-		noTasksMsg := fmt.Sprintf("     📝 No running tasks found in cluster: %s", clusterName)
-		fmt.Println(noTasksMsg)
-
+		log("     📝 No running tasks found in cluster: %s", clusterName)
 		return containersDataList, nil
 	}
 
-	fmt.Printf("     📊 Found %d running tasks\n", len(taskArnList))
+	log("     📊 Found %d running tasks", len(taskArnList))
 
 	// Describe tasks to get container details
 	tasks, err := describeTasks(client, clusterArn, taskArnList)
 	if err != nil {
-		errorMsg := fmt.Sprintf("     ❌ Failed to describe tasks in cluster %s: %v", clusterName, err)
-		fmt.Println(errorMsg)
-
+		log("     ❌ Failed to describe tasks in cluster %s: %v", clusterName, err)
 		return nil, err
 	}
 
@@ -302,86 +294,85 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 	totalContainers := 0
 
 	for taskIndex, task := range tasks {
-		fmt.Printf("       📋 Task %d: %s\n", taskIndex+1, aws2.ToString(task.TaskArn))
-		fmt.Printf("          Status: %s\n", aws2.ToString(task.LastStatus))
-		fmt.Printf("          Desired Status: %s\n", aws2.ToString(task.DesiredStatus))
+		log("       📋 Task %d: %s", taskIndex+1, aws.ToString(task.TaskArn))
+		log("          Status: %s", aws.ToString(task.LastStatus))
+		log("          Desired Status: %s", aws.ToString(task.DesiredStatus))
 
 		if task.TaskDefinitionArn != nil {
-			fmt.Printf("          Task Definition: %s\n", aws2.ToString(task.TaskDefinitionArn))
+			log("          Task Definition: %s", aws.ToString(task.TaskDefinitionArn))
 		}
 
 		if len(task.Containers) == 0 {
-			fmt.Printf("          ⚠️ No containersDataList found in this task\n")
+			log("          ⚠️ No containersDataList found in this task")
 			continue
 		}
 
-		fmt.Printf("          📦 Containers (%d):\n", len(task.Containers))
+		log("          📦 Containers (%d):", len(task.Containers))
 
 		for containerIndex, container := range task.Containers {
 			// Set region for each container
 			totalContainers++
-			fmt.Printf("            %d. Container Name: %s\n", containerIndex+1, aws2.ToString(container.Name))
+			log("            %d. Container Name: %s", containerIndex+1, aws.ToString(container.Name))
 
 			if container.Image != nil {
-				fmt.Printf("               Image: %s\n", aws2.ToString(container.Image))
+				log("               Image: %s", aws.ToString(container.Image))
 			}
 
-			fmt.Printf("               Last Status: %s\n", aws2.ToString(container.LastStatus))
+			log("               Last Status: %s", aws.ToString(container.LastStatus))
 
 			if container.RuntimeId != nil {
-				fmt.Printf("               Runtime ID: %s\n", aws2.ToString(container.RuntimeId))
+				log("               Runtime ID: %s", aws.ToString(container.RuntimeId))
 			}
 
 			if container.TaskArn != nil {
-				fmt.Printf("               Task ARN: %s\n", aws2.ToString(container.TaskArn))
+				log("               Task ARN: %s", aws.ToString(container.TaskArn))
 			}
 
 			if len(container.NetworkBindings) > 0 {
-				fmt.Printf("               Network Bindings:\n")
+				log("               Network Bindings:")
 				for _, binding := range container.NetworkBindings {
 					if binding.HostPort != nil && binding.ContainerPort != nil {
-						fmt.Printf("                 - Host:%d -> Container:%d", *binding.HostPort, *binding.ContainerPort)
+						protocolStr := ""
 						if binding.Protocol != "" {
-							fmt.Printf(" (%s)", binding.Protocol)
+							protocolStr = fmt.Sprintf(" (%s)", binding.Protocol)
 						}
-						fmt.Printf("\n")
+						log("                 - Host:%d -> Container:%d%s", *binding.HostPort, *binding.ContainerPort, protocolStr)
 					}
 				}
 			}
 
 			if len(container.NetworkInterfaces) > 0 {
-				fmt.Printf("               Network Interfaces:\n")
+				log("               Network Interfaces:")
 				for _, netInterface := range container.NetworkInterfaces {
 					if netInterface.PrivateIpv4Address != nil {
-						fmt.Printf("                 - Private IP: %s\n", aws2.ToString(netInterface.PrivateIpv4Address))
+						log("                 - Private IP: %s", aws.ToString(netInterface.PrivateIpv4Address))
 					}
 				}
 			}
 
 			// Log container details
 			containerDetailStr := fmt.Sprintf("Container: %s | Image: %s | Status: %s | Task: %s",
-				aws2.ToString(container.Name),
-				aws2.ToString(container.Image),
-				aws2.ToString(container.LastStatus),
-				aws2.ToString(task.TaskArn))
+				aws.ToString(container.Name),
+				aws.ToString(container.Image),
+				aws.ToString(container.LastStatus),
+				aws.ToString(task.TaskArn))
 			containerDetails = append(containerDetails, containerDetailStr)
 
 			// Create container data object WITHOUT adding to CSV/JSON yet
 			containerData := createContainerData(cluster, &task, &container, nil, region)
 			containersDataList = append(containersDataList, containerData)
 		}
-		fmt.Printf("\n")
+		log("")
 	}
 
 	// Summary and logging
-	summaryMsg := fmt.Sprintf("Found %d containersDataList across %d tasks in cluster %s", totalContainers, len(tasks), clusterName)
-	fmt.Printf("     ✅ %s\n", summaryMsg)
+	log("     ✅ Found %d containersDataList across %d tasks in cluster %s", totalContainers, len(tasks), clusterName)
 
 	return containersDataList, nil
 }
 
 // analyzeENI analyzes a specific ENI for public exposure
-func analyzeENI(ctx context.Context, ec2Client *ec2.Client, eniId string) (*ENIAnalysis, error) {
+func analyzeENI(ctx context.Context, ec2Client *ec2.Client, eniId string, log LogFunc) (*ENIAnalysis, error) {
 	analysis := &ENIAnalysis{
 		SecurityGroups: []string{},
 		OpenPorts:      []string{},
@@ -418,7 +409,7 @@ func analyzeENI(ctx context.Context, ec2Client *ec2.Client, eniId string) (*ENIA
 	if eni.SubnetId != nil {
 		isPublic, err := isSubnetPublic(ctx, ec2Client, *eni.SubnetId)
 		if err != nil {
-			fmt.Printf("⚠️ Warning: Failed to check if subnet %s is public: %v\n", *eni.SubnetId, err)
+			log("⚠️ Warning: Failed to check if subnet %s is public: %v\n", *eni.SubnetId, err)
 		} else {
 			analysis.IsInPublicSubnet = isPublic
 		}
@@ -436,7 +427,7 @@ func analyzeENI(ctx context.Context, ec2Client *ec2.Client, eniId string) (*ENIA
 	// Analyze security group rules for open ports
 	openPorts, err := analyzeSecurityGroupRules(ctx, ec2Client, sgIds)
 	if err != nil {
-		fmt.Printf("⚠️ Warning: Failed to analyze security group rules: %v\n", err)
+		log("⚠️ Warning: Failed to analyze security group rules: %v\n", err)
 	} else {
 		analysis.OpenPorts = openPorts
 	}
@@ -450,7 +441,7 @@ func isSubnetPublic(ctx context.Context, ec2Client *ec2.Client, subnetId string)
 	routeTablesResp, err := ec2Client.DescribeRouteTables(ctx, &ec2.DescribeRouteTablesInput{
 		Filters: []types.Filter{
 			{
-				Name:   aws2.String("association.subnet-id"),
+				Name:   aws.String("association.subnet-id"),
 				Values: []string{subnetId},
 			},
 		},
@@ -463,10 +454,10 @@ func isSubnetPublic(ctx context.Context, ec2Client *ec2.Client, subnetId string)
 	for _, rt := range routeTablesResp.RouteTables {
 		for _, route := range rt.Routes {
 			// Check if there's a route to internet gateway
-			if route.GatewayId != nil && aws2.ToString(route.GatewayId) != "" {
+			if route.GatewayId != nil && aws.ToString(route.GatewayId) != "" {
 				// If destination is 0.0.0.0/0 and gateway starts with "igw-", it's public
 				if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == "0.0.0.0/0" {
-					gatewayId := aws2.ToString(route.GatewayId)
+					gatewayId := aws.ToString(route.GatewayId)
 					if len(gatewayId) > 4 && gatewayId[:4] == "igw-" {
 						return true, nil
 					}
@@ -519,7 +510,7 @@ type LoadBalancerAnalysis struct {
 
 // todo: Implement load balancer analysis
 // analyzeLoadBalancerExposure checks if task is associated with load balancers
-func analyzeLoadBalancerExposure(ctx context.Context, client *elasticloadbalancingv2.Client) (*LoadBalancerAnalysis, error) {
+func analyzeLoadBalancerExposure(ctx context.Context, client *elasticloadbalancingv2.Client, log LogFunc) (*LoadBalancerAnalysis, error) {
 	//_, err := client.DescribeLoadBalancerAttributes(ctx)
 	analysis := &LoadBalancerAnalysis{
 		LoadBalancers: []string{},
@@ -528,11 +519,13 @@ func analyzeLoadBalancerExposure(ctx context.Context, client *elasticloadbalanci
 	// This is a simplified check - in practice, you'd need to check target groups
 	// and correlate with task ENIs or container ports
 
-	// For now, we'll skip this complex analysis
+	// For now, we'll skip this complex analysis and return empty results
 	// In a full implementation, you would:
 	// 1. List all target groups
 	// 2. Check if any targets match the task's ENI IPs
 	// 3. Find load balancers associated with those target groups
+
+	log("⚠️ Load balancer analysis not fully implemented - returning empty results\n")
 
 	return analysis, fmt.Errorf("Todo Analyzing load balancer exposure... \n")
 }
@@ -581,13 +574,13 @@ func describeTasks(client *ecs.Client, clusterArn string, taskArnList []string) 
 func createContainerData(cluster *types2.Cluster, task *types2.Task, container *types2.Container, networkAnalysis *NetworkExposureAnalysis, region string) ContainerData {
 
 	containerData := ContainerData{
-		ClusterName: aws2.ToString(cluster.ClusterName),
-		Name:        aws2.ToString(container.Name),
-		Image:       aws2.ToString(container.Image),
-		Status:      aws2.ToString(container.LastStatus),
-		RuntimeID:   aws2.ToString(container.RuntimeId),
-		TaskARN:     aws2.ToString(task.TaskArn),
-		TaskStatus:  aws2.ToString(task.LastStatus),
+		ClusterName: aws.ToString(cluster.ClusterName),
+		Name:        aws.ToString(container.Name),
+		Image:       aws.ToString(container.Image),
+		Status:      aws.ToString(container.LastStatus),
+		RuntimeID:   aws.ToString(container.RuntimeId),
+		TaskARN:     aws.ToString(task.TaskArn),
+		TaskStatus:  aws.ToString(task.LastStatus),
 		Metadata:    make(map[string]string),
 		Region:      region,
 		Timestamp:   time.Now().Format("2006-01-02 15:04:05"),
@@ -611,7 +604,7 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 	if len(container.NetworkInterfaces) > 0 {
 		netInterface := container.NetworkInterfaces[0] // Take first interface
 		if netInterface.PrivateIpv4Address != nil {
-			containerData.PrivateIP = aws2.ToString(netInterface.PrivateIpv4Address)
+			containerData.PrivateIP = aws.ToString(netInterface.PrivateIpv4Address)
 		}
 	}
 
@@ -645,7 +638,7 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 // getTaskDetails retrieves task details needed for network analysis
 func getTaskDetails(ctx context.Context, ecsClient *ecs.Client, clusterName string, taskArn string) (*types2.Task, error) {
 	input := &ecs.DescribeTasksInput{
-		Cluster: aws2.String(clusterName),
+		Cluster: aws.String(clusterName),
 		Tasks:   []string{taskArn},
 	}
 
@@ -741,22 +734,22 @@ func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNet
 	return publicExposed /*, correlationData*/
 }
 
-func createTaskArnContainerNetworkMap(ctx context.Context, ecsClient *ecs.Client, ec2Client *ec2.Client, elbClient *elasticloadbalancingv2.Client, taskArnContainerDataMap map[string]ContainerData) map[string]*NetworkExposureAnalysis {
+func createTaskArnContainerNetworkMap(ctx context.Context, ecsClient *ecs.Client, ec2Client *ec2.Client, elbClient *elasticloadbalancingv2.Client, taskArnContainerDataMap map[string]ContainerData, log LogFunc) map[string]*NetworkExposureAnalysis {
 	taskArnContainerNetworkMap := make(map[string]*NetworkExposureAnalysis)
 	for taskArn, container := range taskArnContainerDataMap {
-		fmt.Printf("🔍 Analyzing network exposure for task: %s\n", taskArn)
+		log("🔍 Analyzing network exposure for task: %s", taskArn)
 
 		// Get task details for network analysis
 		taskDetails, err := getTaskDetails(ctx, ecsClient, container.ClusterName, taskArn)
 		if err != nil {
-			fmt.Printf("⚠️ Warning: Failed to get task details for %s: %v\n", taskArn, err)
+			log("⚠️ Warning: Failed to get task details for %s: %v", taskArn, err)
 			continue
 		}
 
 		// Perform comprehensive network analysis
-		networkAnalysis, err := analyzeNetworkExposure(ctx, ec2Client, elbClient, taskDetails)
+		networkAnalysis, err := analyzeNetworkExposure(ctx, ec2Client, elbClient, taskDetails, log)
 		if err != nil {
-			fmt.Printf("⚠️ Warning: Failed to analyze network exposure for %s: %v\n", taskArn, err)
+			log("⚠️ Warning: Failed to analyze network exposure for %s: %v", taskArn, err)
 			// Create basic analysis as fallback
 			networkAnalysis = &NetworkExposureAnalysis{
 				IsPubliclyExposed: container.HostPort > 0,
@@ -787,7 +780,7 @@ func createTaskArnContainerMap(containerData []ContainerData) map[string]Contain
 // analyzeNetworkExposure performs comprehensive network exposure analysis for a task
 //
 //goland:noinspection SpellCheckingInspection
-func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Client *elasticloadbalancingv2.Client, task *types2.Task) (*NetworkExposureAnalysis, error) {
+func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Client *elasticloadbalancingv2.Client, task *types2.Task, log LogFunc) (*NetworkExposureAnalysis, error) {
 	analysis := &NetworkExposureAnalysis{
 		ExposureReasons:   []string{},
 		SecurityGroups:    []string{},
@@ -825,9 +818,9 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 
 	// Analyze each ENI for public exposure
 	for _, eniId := range eniIds {
-		eniAnalysis, err := analyzeENI(ctx, ec2Client, eniId)
+		eniAnalysis, err := analyzeENI(ctx, ec2Client, eniId, log)
 		if err != nil {
-			fmt.Printf("⚠️ Warning: Failed to analyze ENI %s: %v\n", eniId, err)
+			log("⚠️ Warning: Failed to analyze ENI %s: %v\n", eniId, err)
 			continue
 		}
 
@@ -853,9 +846,9 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 	}
 
 	// Check for load balancer associations
-	lbAnalysis, err := analyzeLoadBalancerExposure(ctx, elbv2Client)
+	lbAnalysis, err := analyzeLoadBalancerExposure(ctx, elbv2Client, log)
 	if err != nil {
-		fmt.Printf("⚠️ Warning: Failed to analyze load balancer exposure: %v\n", err)
+		log("⚠️ Warning: Failed to analyze load balancer exposure: %v\n", err)
 	} else if len(lbAnalysis.LoadBalancers) > 0 {
 		analysis.LoadBalancers = lbAnalysis.LoadBalancers
 		analysis.ExposureReasons = append(analysis.ExposureReasons, "Associated with load balancer")

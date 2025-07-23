@@ -1,6 +1,6 @@
 ID,Name,Type,Image,ImageSha,PublicExposed,Correlation,ClusterName,ClusterType,ProviderID,Region,Metadata
-c1ef8182-a15e-48ff-a5aa-43ee040c76b6,ecs-service-connect-o3DQRY,CONTAINER,,,true,,demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2,ECS,aws,eu-west-2,
-aafd7ecd-1421-4ccc-b2a8-e65ce99afeb8,php-demo-service,CONTAINER,822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a,,true,,demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2,ECS,aws,eu-west-2,
-6a48cc3a-c658-4d08-add6-7a168bf5148d,nginx-container-2,CONTAINER,nginx:latest,,true,,AST-83961-Fargate,ECS,aws,us-east-2,
-f3c619aa-9961-4fa2-ad5f-302c3f403ff2,nginx-container,CONTAINER,nginx:latest,,true,,AST-83961-Fargate,ECS,aws,us-east-1,
-3d637e84-b72c-4c51-ad44-4936cb699355,ecs-service-connect-60JfD,CONTAINER,,,true,,AST-83961-Fargate,ECS,aws,us-east-1,
+c9f4780f-b5e7-4219-a990-8ce04f24b59c,ecs-service-connect-o3DQRY,CONTAINER,,,true,,demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2,ECS,aws,eu-west-2,
+1d5dfdc1-4c19-4412-b511-82412fbe5790,php-demo-service,CONTAINER,822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a,,true,,demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2,ECS,aws,eu-west-2,
+54e3ea72-98dd-4a14-9e76-30a747688dab,nginx-container,CONTAINER,nginx:latest,,true,,AST-83961-Fargate,ECS,aws,us-east-1,
+5df0526c-4949-46ce-b266-e507888e89e6,ecs-service-connect-60JfD,CONTAINER,,,true,,AST-83961-Fargate,ECS,aws,us-east-1,
+4894e384-2941-4f99-a7cb-ee9a376e143e,nginx-container-2,CONTAINER,nginx:latest,,true,,AST-83961-Fargate,ECS,aws,us-east-2,

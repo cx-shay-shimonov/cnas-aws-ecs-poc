@@ -58,6 +58,51 @@ If running on AWS infrastructure, you can use IAM roles attached to your EC2 ins
 5. **Lists Containers** - Shows all running containers in each cluster with task details
 6. **Writes Configuration** - Outputs setup details and operation logs to `out.txt`
 
+## 📋 Log Symbols & Emojis
+
+The application uses emojis to make the output more readable and to categorize different types of operations:
+
+### 🐳 **ECS Crawler Operations**
+- **🐳 ECS Crawler:** - Base prefix for all ECS-related operations
+
+### 🔧 **Infrastructure & Setup**
+- **🔧** - Creating AWS clients and setting up connections
+- **🌍** - Region discovery and global operations
+- **📋** - Loading credentials and initial setup steps
+
+### 🔍 **Discovery & Analysis**
+- **🔍** - Processing clusters, analyzing tasks, and discovering resources
+- **🐳** - Listing ECS containers and services
+- **📊** - Statistics, counts, and numerical results
+- **📝** - No results found or empty collections
+
+### 📦 **Container Operations**
+- **📦** - Container listings and details
+- **📋** - Task information and definitions
+- **🏷️** - Container names, images, and metadata
+
+### ✅ **Success & Results**
+- **✅** - Successful operations and confirmations
+- **📄** - Result summaries and generated reports
+- **💾** - File saving and data persistence
+
+### ⚠️ **Warnings & Errors**
+- **⚠️** - Warnings, errors, and issues requiring attention
+- **❌** - Failed operations and critical errors
+
+### Example Output:
+```
+🐳 ECS Crawler: 🔧 Creating AWS clients for region us-east-1...
+🐳 ECS Crawler: 🐳 Listing ECS containers in region us-east-1...
+🐳 ECS Crawler: 🔍 Processing cluster: my-cluster
+🐳 ECS Crawler:      📊 Found 2 running tasks
+🐳 ECS Crawler:        📋 Task 1: arn:aws:ecs:us-east-1:...
+🐳 ECS Crawler:           📦 Containers (2):
+🐳 ECS Crawler:      ✅ Found 2 containers across 1 tasks
+🐳 ECS Crawler: 📄 Generated 2 flat resources
+🐳 ECS Crawler: ✅ Successfully analyzed 2 containers
+```
+
 ## 🛠️ Available Operations
 
 ### ECS Operations
