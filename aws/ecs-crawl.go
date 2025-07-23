@@ -863,7 +863,16 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 
 	// todo improve this logic , one condition is enough
 	// Determine overall exposure
-	analysis.IsPubliclyExposed = analysis.HasPublicIP || analysis.IsInPublicSubnet || len(analysis.LoadBalancers) > 0
+	// analysis.IsPubliclyExposed = analysis.HasPublicIP || analysis.IsInPublicSubnet || len(analysis.LoadBalancers) > 0
 
+	// todo improve this logic , one condition is enough
+	// Determine overall exposure
+	// Determine overall exposure - a container is publicly exposed if it meets any of these conditions:
+	// 1. Has a public IP address
+	// 2. Is in a public subnet AND has open ports that allow external access
+	// 3. Is associated with a public load balancer
+	analysis.IsPubliclyExposed = analysis.HasPublicIP ||
+		(analysis.IsInPublicSubnet && len(analysis.OpenPorts) > 0) ||
+		len(analysis.LoadBalancers) > 0
 	return analysis, nil
 }
