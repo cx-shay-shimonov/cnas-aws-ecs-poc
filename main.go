@@ -127,6 +127,5 @@ func listRegions(ctx context.Context, ec2Client *ec2.Client) ([]types.Region, er
 		return nil, fmt.Errorf("failed to describe regions: %w", err)
 	}
 
-	fmt.Printf("✅ Found %d AWS regions: %v\n", len(resp.Regions), resp.Regions)
 	return resp.Regions, nil
 }
