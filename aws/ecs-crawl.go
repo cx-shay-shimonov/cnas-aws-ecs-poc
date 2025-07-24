@@ -22,14 +22,14 @@ import (
 
 type ContainerData struct {
 	Name          string
-	Type          grpcType.ResourceType
+	Type          resType.ResourceType
 	Image         string
 	ImageSHA      string
-	Metadata      map[string]string
+	Metadata      map[string]string // to is in use??
 	PublicExposed bool
 	Correlation   string
 	ClusterName   string
-	ClusterType   grpcType.ResourceGroupType
+	ClusterType   resType.ResourceGroupType
 	ProviderID    string
 
 	// Container-specific fields only (no duplicates from StoreResourceFlat)
