@@ -14,6 +14,9 @@ const (
 	ResourceGroupType_ECS ResourceGroupType = "ECS"
 )
 
+type Correlation struct {
+}
+
 // StoreResourceFlat represents a flattened resource for storage
 type StoreResourceFlat struct {
 	Name          string
@@ -22,7 +25,7 @@ type StoreResourceFlat struct {
 	ImageSha      string // todo: Implement image SHA extraction
 	Metadata      map[string]string
 	PublicExposed bool
-	Correlation   string
+	Correlation   *Correlation
 	ClusterName   string
 	ClusterType   ResourceGroupType
 	ProviderID    string

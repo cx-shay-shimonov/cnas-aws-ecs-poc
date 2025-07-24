@@ -17,8 +17,11 @@ func ExportCSV(resources []model.FlatResource) bool {
 		return false
 	}
 	defer func() {
-		csvFile.Close()
-		fmt.Println("✅ CSV file closed successfully")
+		err := csvFile.Close()
+		if err != nil {
+			fmt.Println("✅ CSV file closed successfully")
+			return
+		}
 	}()
 
 	// Create CSV writer
@@ -47,7 +50,6 @@ func ExportCSV(resources []model.FlatResource) bool {
 			resource.StoreResourceFlat.Image,
 			resource.StoreResourceFlat.ImageSha,
 			fmt.Sprintf("%t", resource.StoreResourceFlat.PublicExposed),
-			resource.StoreResourceFlat.Correlation,
 			resource.StoreResourceFlat.ClusterName,
 			string(resource.StoreResourceFlat.ClusterType),
 			resource.StoreResourceFlat.ProviderID,
@@ -71,8 +73,11 @@ func ExportJSON(resources []model.FlatResource) bool {
 		return false
 	}
 	defer func() {
-		jsonFile.Close()
-		fmt.Println("✅ JSON file closed successfully")
+		err := jsonFile.Close()
+		if err != nil {
+			fmt.Println("✅ JSON file closed successfully")
+			return
+		}
 	}()
 
 	// Create JSON encoder

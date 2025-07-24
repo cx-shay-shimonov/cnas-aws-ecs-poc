@@ -1,6 +1,6 @@
 [
   {
-    "ID": "95b662b0-65ba-45d7-91b0-cbb7761c2232",
+    "ID": "4fb3d2d7-60e1-4e28-99c2-273fd268a68f",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-o3DQRY",
       "Type": 0,
@@ -8,7 +8,7 @@
       "ImageSha": "",
       "Metadata": null,
       "PublicExposed": true,
-      "Correlation": "",
+      "Correlation": null,
       "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
       "ClusterType": "ECS",
       "ProviderID": "",
@@ -16,7 +16,7 @@
     }
   },
   {
-    "ID": "17cad271-5e1c-42bd-b3a0-a2ee165d35c8",
+    "ID": "ac958b10-461f-462b-a408-e85ba19d6f20",
     "StoreResourceFlat": {
       "Name": "php-demo-service",
       "Type": 0,
@@ -24,7 +24,7 @@
       "ImageSha": "",
       "Metadata": null,
       "PublicExposed": true,
-      "Correlation": "",
+      "Correlation": null,
       "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
       "ClusterType": "ECS",
       "ProviderID": "",
@@ -32,7 +32,7 @@
     }
   },
   {
-    "ID": "95e52616-9911-46c7-9956-bd86bee72599",
+    "ID": "0568e049-b498-4739-b179-bd7c096524a1",
     "StoreResourceFlat": {
       "Name": "nginx-container-2",
       "Type": 0,
@@ -40,7 +40,7 @@
       "ImageSha": "",
       "Metadata": null,
       "PublicExposed": true,
-      "Correlation": "",
+      "Correlation": null,
       "ClusterName": "AST-83961-Fargate",
       "ClusterType": "ECS",
       "ProviderID": "",
@@ -48,7 +48,7 @@
     }
   },
   {
-    "ID": "452e7b96-d370-475a-894e-405f44daddb5",
+    "ID": "7d133951-079d-4e27-b379-5ed1a630e2c7",
     "StoreResourceFlat": {
       "Name": "nginx-container",
       "Type": 0,
@@ -56,7 +56,7 @@
       "ImageSha": "",
       "Metadata": null,
       "PublicExposed": true,
-      "Correlation": "",
+      "Correlation": null,
       "ClusterName": "AST-83961-Fargate",
       "ClusterType": "ECS",
       "ProviderID": "",
@@ -64,7 +64,7 @@
     }
   },
   {
-    "ID": "94996ba8-a9b9-4a56-872b-1593d397de70",
+    "ID": "cb0459e6-3f86-4e17-b0b0-fd034f37311e",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-60JfD",
       "Type": 0,
@@ -72,7 +72,7 @@
       "ImageSha": "",
       "Metadata": null,
       "PublicExposed": true,
-      "Correlation": "",
+      "Correlation": null,
       "ClusterName": "AST-83961-Fargate",
       "ClusterType": "ECS",
       "ProviderID": "",
