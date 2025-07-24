@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func ExportCSV(resources []FlatResourceResult) bool {
+func ExportCSV(resources []FlatResource) bool {
 	fmt.Printf("💾 Saving %d results to containers.csv...\n", len(resources))
 
 	// Create CSV file
@@ -78,7 +78,7 @@ func ExportCSV(resources []FlatResourceResult) bool {
 	return true
 }
 
-func ExportJSON(resources []FlatResourceResult) bool {
+func ExportJSON(resources []FlatResource) bool {
 	fmt.Printf("💾 Saving %d results to containers.json...\n", len(resources))
 
 	// Create JSON file

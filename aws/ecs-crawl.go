@@ -73,8 +73,8 @@ type StoreResourceFlat struct {
 	Region        string
 }
 
-// FlatResourceResult represents the result structure with ID and StoreResourceFlat
-type FlatResourceResult struct {
+// FlatResource represents the result structure with ID and StoreResourceFlat
+type FlatResource struct {
 	ID                string
 	StoreResourceFlat StoreResourceFlat
 }
@@ -104,11 +104,11 @@ type ENIAnalysis struct {
 	PublicIPs        []string
 }
 
-func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger InfoLogger) []FlatResourceResult {
+func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger InfoLogger) []FlatResource {
 	log := CreatePrefixedLogger(logger, "🐳 ECS Crawler: ")
 
 	// Process containers from all regions in parallel
-	allResources := make([]FlatResourceResult, 0)
+	allResources := make([]FlatResource, 0)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
@@ -140,7 +140,7 @@ func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger Inf
 	return allResources
 }
 
-func extractRegionResources(regionName string, ctx context.Context, cfg aws.Config, log LogFunc) ([]FlatResourceResult, error) {
+func extractRegionResources(regionName string, ctx context.Context, cfg aws.Config, log LogFunc) ([]FlatResource, error) {
 	ecsClient, ec2Client, elbClient := createRegionClients(regionName, cfg, log)
 	totalContainers := 0
 
@@ -181,9 +181,9 @@ func extractRegionResources(regionName string, ctx context.Context, cfg aws.Conf
 	return regionResourcesList, nil
 }
 
-func extractResources(containersData []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis, log LogFunc) []FlatResourceResult {
-	var allResourcesList []FlatResourceResult
-	// Map each containerData to FlatResourceResult with enhanced network data
+func extractResources(containersData []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis, log LogFunc) []FlatResource {
+	var allResourcesList []FlatResource
+	// Map each containerData to FlatResource with enhanced network data
 	for _, containerData := range containersData {
 		// Get network analysis for this containerData's task
 		containerNetworkAnalysis := taskArnContainerNetworkMap[containerData.TaskARN]
@@ -654,12 +654,12 @@ func getTaskDetails(ctx context.Context, ecsClient *ecs.Client, clusterName stri
 	return &resp.Tasks[0], nil
 }
 
-func containerToResource(containerData ContainerData, publicExposed bool /*, correlationData string*/) FlatResourceResult {
+func containerToResource(containerData ContainerData, publicExposed bool /*, correlationData string*/) FlatResource {
 	// Add timestamp to metadata
 	containerData.Metadata["end-timestamp"] = time.Now().Format("2006-01-02 15:04:05")
 
 	// Create result with UUID - use the embedded StoreResourceFlat directly
-	result := FlatResourceResult{
+	result := FlatResource{
 		ID: uuid.NewString(),
 		StoreResourceFlat: StoreResourceFlat{
 			Name:     containerData.Name,
