@@ -4,73 +4,58 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
-	"strconv"
-	"strings"
+
+	"aws-ecs-project/model"
 )
 
-func ExportCSV(resources []FlatResource) bool {
-	fmt.Printf("💾 Saving %d results to containers.csv...\n", len(resources))
-
+func ExportCSV(resources []model.FlatResource) bool {
 	// Create CSV file
-	file, err := os.Create("containers.csv")
+	csvFile, err := os.Create("containers.csv")
 	if err != nil {
-		log.Printf("❌ Failed to create CSV file: %v", err)
+		fmt.Printf("❌ Failed to create CSV file: %v\n", err)
 		return false
 	}
-	defer func( /*file *os.File*/ ) {
-		err := file.Close()
-		if err != nil {
-			log.Printf("❌ Failed to close CSV file: %v", err)
-		} else {
-			fmt.Println("✅ CSV file closed successfully")
-		}
-	}( /*file*/ )
+	defer func() {
+		csvFile.Close()
+		fmt.Println("✅ CSV file closed successfully")
+	}()
 
 	// Create CSV writer
-	writer := csv.NewWriter(file)
+	writer := csv.NewWriter(csvFile)
 	defer writer.Flush()
 
-	// Write CSV headers
-	headers := []string{"ID", "Name", "Type", "Image", "ImageSha", "PublicExposed", "Correlation", "ClusterName", "ClusterType", "ProviderID", "Region", "Metadata"}
-	if err := writer.Write(headers); err != nil {
-		log.Printf("❌ Failed to write CSV headers: %v", err)
+	// Write header
+	header := []string{
+		"ID", "Name", "Type", "Image", "ImageSha", "PublicExposed",
+		"Correlation", "ClusterName", "ClusterType", "ProviderID", "Region",
+	}
+	if err := writer.Write(header); err != nil {
+		fmt.Printf("❌ Failed to write CSV header: %v\n", err)
 		return false
 	}
 
-	// Write each result as CSV row
-	for _, result := range resources {
-		// Handle metadata - convert map to key=value pairs
-		metadataStr := ""
-		if len(result.StoreResourceFlat.Metadata) > 0 {
-			var metadataPairs []string
-			for key, value := range result.StoreResourceFlat.Metadata {
-				metadataPairs = append(metadataPairs, fmt.Sprintf("%s=%s", key, value))
-			}
-			metadataStr = strings.Join(metadataPairs, ";")
-		}
-
-		// Create CSV row
-		row := []string{
-			result.ID,
-			result.StoreResourceFlat.Name,
-			string(result.StoreResourceFlat.Type),
-			result.StoreResourceFlat.Image,
-			result.StoreResourceFlat.ImageSha,
-			strconv.FormatBool(result.StoreResourceFlat.PublicExposed),
-			result.StoreResourceFlat.Correlation,
-			result.StoreResourceFlat.ClusterName,
-			string(result.StoreResourceFlat.ClusterType),
-			result.StoreResourceFlat.ProviderID,
-			result.StoreResourceFlat.Region,
-			metadataStr,
-		}
-
-		// Write row to CSV
-		if err := writer.Write(row); err != nil {
-			log.Printf("❌ Failed to write CSV row: %v", err)
+	// Write data rows
+	for _, resource := range resources {
+		if resource.StoreResourceFlat == nil {
 			continue
+		}
+		record := []string{
+			resource.ID,
+			resource.StoreResourceFlat.Name,
+			string(resource.StoreResourceFlat.Type),
+			resource.StoreResourceFlat.Image,
+			resource.StoreResourceFlat.ImageSha,
+			fmt.Sprintf("%t", resource.StoreResourceFlat.PublicExposed),
+			resource.StoreResourceFlat.Correlation,
+			resource.StoreResourceFlat.ClusterName,
+			string(resource.StoreResourceFlat.ClusterType),
+			resource.StoreResourceFlat.ProviderID,
+			resource.StoreResourceFlat.Region,
+		}
+		if err := writer.Write(record); err != nil {
+			fmt.Printf("❌ Failed to write CSV record: %v\n", err)
+			return false
 		}
 	}
 
@@ -78,34 +63,25 @@ func ExportCSV(resources []FlatResource) bool {
 	return true
 }
 
-func ExportJSON(resources []FlatResource) bool {
-	fmt.Printf("💾 Saving %d results to containers.json...\n", len(resources))
-
+func ExportJSON(resources []model.FlatResource) bool {
 	// Create JSON file
-	file, err := os.Create("containers.json")
+	jsonFile, err := os.Create("containers.json")
 	if err != nil {
-		log.Printf("❌ Failed to create JSON file: %v", err)
+		fmt.Printf("❌ Failed to create JSON file: %v\n", err)
 		return false
 	}
-	defer func( /*file *os.File*/ ) {
-		err := file.Close()
-		if err != nil {
-			log.Printf("❌ Failed to close JSON file: %v", err)
-		} else {
-			fmt.Println("✅ JSON file closed successfully")
-		}
-	}( /*file*/ )
+	defer func() {
+		jsonFile.Close()
+		fmt.Println("✅ JSON file closed successfully")
+	}()
 
-	// Convert resources to JSON with pretty printing
-	jsonData, err := json.MarshalIndent(resources, "", "  ")
-	if err != nil {
-		log.Printf("❌ Failed to marshal JSON data: %v", err)
-		return false
-	}
+	// Create JSON encoder
+	encoder := json.NewEncoder(jsonFile)
+	encoder.SetIndent("", "  ") // Pretty print
 
-	// Write JSON data to file
-	if _, err := file.Write(jsonData); err != nil {
-		log.Printf("❌ Failed to write JSON data: %v", err)
+	// Write JSON data
+	if err := encoder.Encode(resources); err != nil {
+		fmt.Printf("❌ Failed to write JSON data: %v\n", err)
 		return false
 	}
 

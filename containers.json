@@ -1,9 +1,57 @@
 [
   {
-    "ID": "c9f4780f-b5e7-4219-a990-8ce04f24b59c",
+    "ID": "3450b0f9-f42a-4ecc-a4a0-1ffcf26b5cd5",
+    "StoreResourceFlat": {
+      "Name": "nginx-container",
+      "Type": 0,
+      "Image": "nginx:latest",
+      "ImageSha": "",
+      "Metadata": null,
+      "PublicExposed": true,
+      "Correlation": "",
+      "ClusterName": "AST-83961-Fargate",
+      "ClusterType": "ECS",
+      "ProviderID": "",
+      "Region": "us-east-1"
+    }
+  },
+  {
+    "ID": "45400527-086e-4d38-85e8-f32cee8417eb",
+    "StoreResourceFlat": {
+      "Name": "ecs-service-connect-60JfD",
+      "Type": 0,
+      "Image": "",
+      "ImageSha": "",
+      "Metadata": null,
+      "PublicExposed": true,
+      "Correlation": "",
+      "ClusterName": "AST-83961-Fargate",
+      "ClusterType": "ECS",
+      "ProviderID": "",
+      "Region": "us-east-1"
+    }
+  },
+  {
+    "ID": "e2e1898e-dd13-47ab-bea6-408a7838645f",
+    "StoreResourceFlat": {
+      "Name": "nginx-container-2",
+      "Type": 0,
+      "Image": "nginx:latest",
+      "ImageSha": "",
+      "Metadata": null,
+      "PublicExposed": true,
+      "Correlation": "",
+      "ClusterName": "AST-83961-Fargate",
+      "ClusterType": "ECS",
+      "ProviderID": "",
+      "Region": "us-east-2"
+    }
+  },
+  {
+    "ID": "01042984-2e46-46f3-b98f-b95b6ae1c3ef",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-o3DQRY",
-      "Type": "CONTAINER",
+      "Type": 0,
       "Image": "",
       "ImageSha": "",
       "Metadata": null,
@@ -11,15 +59,15 @@
       "Correlation": "",
       "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
       "ClusterType": "ECS",
-      "ProviderID": "aws",
+      "ProviderID": "",
       "Region": "eu-west-2"
     }
   },
   {
-    "ID": "1d5dfdc1-4c19-4412-b511-82412fbe5790",
+    "ID": "bb7efdb6-44b0-4db5-879f-b217bea0e06a",
     "StoreResourceFlat": {
       "Name": "php-demo-service",
-      "Type": "CONTAINER",
+      "Type": 0,
       "Image": "822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
       "ImageSha": "",
       "Metadata": null,
@@ -27,56 +75,8 @@
       "Correlation": "",
       "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
       "ClusterType": "ECS",
-      "ProviderID": "aws",
+      "ProviderID": "",
       "Region": "eu-west-2"
-    }
-  },
-  {
-    "ID": "54e3ea72-98dd-4a14-9e76-30a747688dab",
-    "StoreResourceFlat": {
-      "Name": "nginx-container",
-      "Type": "CONTAINER",
-      "Image": "nginx:latest",
-      "ImageSha": "",
-      "Metadata": null,
-      "PublicExposed": true,
-      "Correlation": "",
-      "ClusterName": "AST-83961-Fargate",
-      "ClusterType": "ECS",
-      "ProviderID": "aws",
-      "Region": "us-east-1"
-    }
-  },
-  {
-    "ID": "5df0526c-4949-46ce-b266-e507888e89e6",
-    "StoreResourceFlat": {
-      "Name": "ecs-service-connect-60JfD",
-      "Type": "CONTAINER",
-      "Image": "",
-      "ImageSha": "",
-      "Metadata": null,
-      "PublicExposed": true,
-      "Correlation": "",
-      "ClusterName": "AST-83961-Fargate",
-      "ClusterType": "ECS",
-      "ProviderID": "aws",
-      "Region": "us-east-1"
-    }
-  },
-  {
-    "ID": "4894e384-2941-4f99-a7cb-ee9a376e143e",
-    "StoreResourceFlat": {
-      "Name": "nginx-container-2",
-      "Type": "CONTAINER",
-      "Image": "nginx:latest",
-      "ImageSha": "",
-      "Metadata": null,
-      "PublicExposed": true,
-      "Correlation": "",
-      "ClusterName": "AST-83961-Fargate",
-      "ClusterType": "ECS",
-      "ProviderID": "aws",
-      "Region": "us-east-2"
     }
   }
 ]

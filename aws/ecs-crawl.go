@@ -7,6 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"aws-ecs-project/grpcType"
+	resType "aws-ecs-project/grpcType"
+	"aws-ecs-project/model"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -18,14 +22,14 @@ import (
 
 type ContainerData struct {
 	Name          string
-	Type          ResourceType
+	Type          grpcType.ResourceType
 	Image         string
 	ImageSHA      string
 	Metadata      map[string]string
 	PublicExposed bool
 	Correlation   string
 	ClusterName   string
-	ClusterType   ResourceGroupType
+	ClusterType   grpcType.ResourceGroupType
 	ProviderID    string
 
 	// Container-specific fields only (no duplicates from StoreResourceFlat)
@@ -43,40 +47,6 @@ type ContainerData struct {
 	ExposureReasons string
 	Region          string
 	Timestamp       string
-}
-
-// ResourceType represents the type of the resource
-type ResourceType string
-
-const (
-	ResourceTypeContainer ResourceType = "CONTAINER"
-)
-
-// ResourceGroupType represents the type of the resource group
-type ResourceGroupType string
-
-const (
-	ResourceGroupTypeECS ResourceGroupType = "ECS"
-)
-
-type StoreResourceFlat struct {
-	Name          string
-	Type          ResourceType
-	Image         string
-	ImageSha      string // todo: Implement image SHA extraction
-	Metadata      map[string]string
-	PublicExposed bool
-	Correlation   string
-	ClusterName   string
-	ClusterType   ResourceGroupType
-	ProviderID    string
-	Region        string
-}
-
-// FlatResource represents the result structure with ID and StoreResourceFlat
-type FlatResource struct {
-	ID                string
-	StoreResourceFlat StoreResourceFlat
 }
 
 // NetworkExposureAnalysis contains detailed network exposure information
@@ -104,11 +74,11 @@ type ENIAnalysis struct {
 	PublicIPs        []string
 }
 
-func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger InfoLogger) []FlatResource {
+func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger InfoLogger) []model.FlatResource {
 	log := CreatePrefixedLogger(logger, "🐳 ECS Crawler: ")
 
 	// Process containers from all regions in parallel
-	allResources := make([]FlatResource, 0)
+	allResources := make([]model.FlatResource, 0)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
@@ -140,7 +110,7 @@ func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger Inf
 	return allResources
 }
 
-func extractRegionResources(regionName string, ctx context.Context, cfg aws.Config, log LogFunc) ([]FlatResource, error) {
+func extractRegionResources(regionName string, ctx context.Context, cfg aws.Config, log LogFunc) ([]model.FlatResource, error) {
 	ecsClient, ec2Client, elbClient := createRegionClients(regionName, cfg, log)
 	totalContainers := 0
 
@@ -181,9 +151,9 @@ func extractRegionResources(regionName string, ctx context.Context, cfg aws.Conf
 	return regionResourcesList, nil
 }
 
-func extractResources(containersData []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis, log LogFunc) []FlatResource {
-	var allResourcesList []FlatResource
-	// Map each containerData to FlatResource with enhanced network data
+func extractResources(containersData []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis, log LogFunc) []model.FlatResource {
+	var allResourcesList []model.FlatResource
+	// Map each containerData to FlatResourceResult with enhanced network data
 	for _, containerData := range containersData {
 		// Get network analysis for this containerData's task
 		containerNetworkAnalysis := taskArnContainerNetworkMap[containerData.TaskARN]
@@ -332,11 +302,11 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 				log("               Network Bindings:")
 				for _, binding := range container.NetworkBindings {
 					if binding.HostPort != nil && binding.ContainerPort != nil {
-						protocolStr := ""
+						log("                 - Host:%d -> Container:%d", *binding.HostPort, *binding.ContainerPort)
 						if binding.Protocol != "" {
-							protocolStr = fmt.Sprintf(" (%s)", binding.Protocol)
+							log(" (%s)", binding.Protocol)
 						}
-						log("                 - Host:%d -> Container:%d%s", *binding.HostPort, *binding.ContainerPort, protocolStr)
+						log("\n")
 					}
 				}
 			}
@@ -345,7 +315,7 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 				log("               Network Interfaces:")
 				for _, netInterface := range container.NetworkInterfaces {
 					if netInterface.PrivateIpv4Address != nil {
-						log("                 - Private IP: %s", aws.ToString(netInterface.PrivateIpv4Address))
+						log("                 - Private IP: %s\n", aws.ToString(netInterface.PrivateIpv4Address))
 					}
 				}
 			}
@@ -362,7 +332,7 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 			containerData := createContainerData(cluster, &task, &container, nil, region)
 			containersDataList = append(containersDataList, containerData)
 		}
-		log("")
+		log("\n")
 	}
 
 	// Summary and logging
@@ -526,7 +496,6 @@ func analyzeLoadBalancerExposure(ctx context.Context, client *elasticloadbalanci
 	// 3. Find load balancers associated with those target groups
 
 	log("⚠️ Load balancer analysis not fully implemented - returning empty results\n")
-
 	return analysis, fmt.Errorf("Todo Analyzing load balancer exposure... \n")
 }
 
@@ -654,24 +623,24 @@ func getTaskDetails(ctx context.Context, ecsClient *ecs.Client, clusterName stri
 	return &resp.Tasks[0], nil
 }
 
-func containerToResource(containerData ContainerData, publicExposed bool /*, correlationData string*/) FlatResource {
+func containerToResource(containerData ContainerData, publicExposed bool /*, correlationData string*/) model.FlatResource {
 	// Add timestamp to metadata
 	containerData.Metadata["end-timestamp"] = time.Now().Format("2006-01-02 15:04:05")
 
 	// Create result with UUID - use the embedded StoreResourceFlat directly
-	result := FlatResource{
+	result := model.FlatResource{
 		ID: uuid.NewString(),
-		StoreResourceFlat: StoreResourceFlat{
+		StoreResourceFlat: &grpcType.StoreResourceFlat{
 			Name:     containerData.Name,
-			Type:     ResourceTypeContainer,
+			Type:     resType.ResourceType_CONTAINER,
 			Image:    containerData.Image,
 			ImageSha: "", // Not available in current containerData data
 			//Metadata:      metadata,
 			PublicExposed: publicExposed,
 			Correlation:   "", //correlationData,
 			ClusterName:   containerData.ClusterName,
-			ClusterType:   ResourceGroupTypeECS,
-			ProviderID:    "aws",
+			ClusterType:   resType.ResourceGroupType_ECS,
+			ProviderID:    containerData.ProviderID,
 			Region:        containerData.Region,
 		},
 	}
@@ -853,10 +822,6 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 		analysis.LoadBalancers = lbAnalysis.LoadBalancers
 		analysis.ExposureReasons = append(analysis.ExposureReasons, "Associated with load balancer")
 	}
-
-	// todo improve this logic , one condition is enough
-	// Determine overall exposure
-	// analysis.IsPubliclyExposed = analysis.HasPublicIP || analysis.IsInPublicSubnet || len(analysis.LoadBalancers) > 0
 
 	// todo improve this logic , one condition is enough
 	// Determine overall exposure
