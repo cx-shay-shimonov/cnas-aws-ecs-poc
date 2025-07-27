@@ -91,7 +91,7 @@ func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger Inf
 			regionCfg := cfg.Copy()
 			regionCfg.Region = regionName
 
-			regionResources, err := extractRegionResources(regionName, ctx, regionCfg, log)
+			regionResources, err := crawlRegionResources(regionName, ctx, regionCfg, log)
 			if err != nil {
 				log("Failed to process region %s: %v", regionName, err)
 				return
@@ -110,7 +110,10 @@ func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger Inf
 	return allResources
 }
 
-func extractRegionResources(regionName string, ctx context.Context, cfg aws.Config, log LogFunc) ([]model.FlatResource, error) {
+func crawlRegionResources(regionName string, ctx context.Context, cfg aws.Config, log LogFunc) ([]model.FlatResource, error) {
+
+	defer ecsCrawlRegionTimer(log, regionName)()
+
 	ecsClient, ec2Client, elbClient := createRegionClients(regionName, cfg, log)
 	totalContainers := 0
 
@@ -845,5 +848,11 @@ func ecsCrawlTimer(log LogFunc) func() {
 	start := time.Now()
 	return func() {
 		log("✅ AWS ECS crawl took %s to complete!", time.Since(start))
+	}
+}
+func ecsCrawlRegionTimer(log LogFunc, region string) func() {
+	start := time.Now()
+	return func() {
+		log("✅ AWS ECS Crawl region %s took %s to complete!", region, time.Since(start))
 	}
 }
