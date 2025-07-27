@@ -76,7 +76,7 @@ type ENIAnalysis struct {
 
 func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger InfoLogger) []model.FlatResource {
 	log := CreatePrefixedLogger(logger, "🐳 ECS Crawler: ")
-
+	defer ecsCrawlTimer(log)()
 	// Process containers from all regions in parallel
 	allResources := make([]model.FlatResource, 0)
 	var wg sync.WaitGroup
@@ -840,4 +840,10 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 		(analysis.IsInPublicSubnet && len(analysis.OpenPorts) > 0) ||
 		len(analysis.LoadBalancers) > 0
 	return analysis, nil
+}
+func ecsCrawlTimer(log LogFunc) func() {
+	start := time.Now()
+	return func() {
+		log("✅ AWS ECS crawl took %s to complete!", time.Since(start))
+	}
 }

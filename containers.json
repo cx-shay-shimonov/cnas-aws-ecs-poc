@@ -1,6 +1,6 @@
 [
   {
-    "ID": "4fb3d2d7-60e1-4e28-99c2-273fd268a68f",
+    "ID": "8f75eb01-ef42-4f30-806a-4df8a7b69891",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-o3DQRY",
       "Type": 0,
@@ -16,7 +16,7 @@
     }
   },
   {
-    "ID": "ac958b10-461f-462b-a408-e85ba19d6f20",
+    "ID": "c609bda2-9498-4171-8b81-85582e985565",
     "StoreResourceFlat": {
       "Name": "php-demo-service",
       "Type": 0,
@@ -32,23 +32,7 @@
     }
   },
   {
-    "ID": "0568e049-b498-4739-b179-bd7c096524a1",
-    "StoreResourceFlat": {
-      "Name": "nginx-container-2",
-      "Type": 0,
-      "Image": "nginx:latest",
-      "ImageSha": "",
-      "Metadata": null,
-      "PublicExposed": true,
-      "Correlation": null,
-      "ClusterName": "AST-83961-Fargate",
-      "ClusterType": "ECS",
-      "ProviderID": "",
-      "Region": "us-east-2"
-    }
-  },
-  {
-    "ID": "7d133951-079d-4e27-b379-5ed1a630e2c7",
+    "ID": "77aa036c-1c08-4f9e-b891-db3f342fa992",
     "StoreResourceFlat": {
       "Name": "nginx-container",
       "Type": 0,
@@ -64,7 +48,7 @@
     }
   },
   {
-    "ID": "cb0459e6-3f86-4e17-b0b0-fd034f37311e",
+    "ID": "6b3506ff-e5df-4471-a325-3ccfbf319a2e",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-60JfD",
       "Type": 0,
