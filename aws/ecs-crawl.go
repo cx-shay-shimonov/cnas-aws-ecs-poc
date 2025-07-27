@@ -42,8 +42,8 @@ type ContainerData struct {
 	Protocol        string
 	PrivateIP       string
 	NetworkMode     string
-	SecurityGroups  string
-	OpenPorts       string
+	SecurityGroups  string // todo: used only on meta data, not in use?
+	OpenPorts       string // todo: not in use?
 	ExposureReasons string
 	Region          string
 	Timestamp       string
@@ -56,7 +56,7 @@ type NetworkExposureAnalysis struct {
 	NetworkMode       string
 	HasPublicIP       bool
 	IsInPublicSubnet  bool
-	SecurityGroups    []string
+	SecurityGroups    []string // todo: is this needed?
 	OpenPorts         []string
 	LoadBalancers     []string
 	PrivateIPs        []string
@@ -68,7 +68,7 @@ type NetworkExposureAnalysis struct {
 type ENIAnalysis struct {
 	HasPublicIP      bool
 	IsInPublicSubnet bool
-	SecurityGroups   []string
+	SecurityGroups   []string // todo: is this needed?
 	OpenPorts        []string
 	PrivateIPs       []string
 	PublicIPs        []string
