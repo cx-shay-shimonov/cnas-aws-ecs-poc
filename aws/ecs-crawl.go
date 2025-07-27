@@ -118,7 +118,7 @@ func crawlRegionResources(regionName string, ctx context.Context, cfg aws.Config
 	totalContainers := 0
 
 	// List containers in this region
-	log("🐳 Listing ECS containers in region %s...", regionName)
+	log("🐳 Listing containers in region %s...", regionName)
 
 	regionClustersList, err := listRegionClusters(ctx, ecsClient, log)
 	if err != nil {
@@ -128,7 +128,7 @@ func crawlRegionResources(regionName string, ctx context.Context, cfg aws.Config
 	regionContainersDataList, err := listRegionContainersData(ecsClient, regionClustersList, regionName, log)
 
 	if err != nil {
-		log("ECS operation failed in region %s: %v", regionName, err)
+		log("operation failed in region %s: %v", regionName, err)
 		return nil, err
 	}
 
@@ -847,12 +847,12 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 func ecsCrawlTimer(log LogFunc) func() {
 	start := time.Now()
 	return func() {
-		log("✅ AWS ECS crawl took %s to complete!", time.Since(start))
+		log("✅ Crawl took %s to complete!", time.Since(start))
 	}
 }
 func ecsCrawlRegionTimer(log LogFunc, region string) func() {
 	start := time.Now()
 	return func() {
-		log("✅ AWS ECS Crawl region %s took %s to complete!", region, time.Since(start))
+		log("✅ Crawl region %s took %s to complete!", region, time.Since(start))
 	}
 }
