@@ -242,11 +242,13 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 	taskArnList, err := listTasks(client, clusterArn)
 	if err != nil {
 		log("     ❌ Failed to list tasks in cluster %s: %v", clusterName, err)
+
 		return nil, err
 	}
 
 	if len(taskArnList) == 0 {
 		log("     📝 No running tasks found in cluster: %s", clusterName)
+
 		return containersDataList, nil
 	}
 
@@ -256,6 +258,7 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 	tasks, err := describeTasks(client, clusterArn, taskArnList)
 	if err != nil {
 		log("     ❌ Failed to describe tasks in cluster %s: %v", clusterName, err)
+
 		return nil, err
 	}
 
