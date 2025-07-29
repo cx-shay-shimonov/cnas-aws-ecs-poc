@@ -17,17 +17,7 @@ const DefaultRegion = "us-east-1" // Default region for getting all regions
 const TargetRoleArn = "arn:aws:iam::822112283600:role/CnasTargetRole"
 const DebugFastMode = false // Set to true for faster testing, skips region discovery
 
-// MockLogger implements InfoLogger for simple console logging
-type MockLogger struct{}
-
-func (m *MockLogger) Info() cnasAws.MsgfLogger {
-	return &MockEvent{}
-}
-
-// MockEvent implements MsgfLogger for formatted message output
-type MockEvent struct{}
-
-func (m *MockEvent) Msgf(format string, args ...any) {
+func logFn(format string, args ...any) {
 	fmt.Printf(format, args...)
 }
 
@@ -76,8 +66,7 @@ func main() {
 		return
 	}
 
-	logger := &MockLogger{}
-	resources := cnasAws.EcsCrawl(regionsNames, ctx, &cfg, logger)
+	resources := cnasAws.EcsCrawl(regionsNames, ctx, &cfg, logFn)
 
 	// Save detailed results to CSV and JSON files after all regions are processed
 	if len(resources) > 0 {

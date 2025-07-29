@@ -74,8 +74,19 @@ type ENIAnalysis struct {
 	PublicIPs        []string
 }
 
-func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger InfoLogger) []model.FlatResource {
-	log := CreatePrefixedLogger(logger, "🐳 ECS Crawler: ")
+// LogFunc represents a logging function that accepts formatted messages
+type LogFunc func(format string, args ...any)
+
+// createPrefixedLogger creates a logging function that prefixes all messages
+func createPrefixedLogger(logFn LogFunc, prefix string) LogFunc {
+	return func(format string, args ...any) {
+		fullFormat := prefix + format + "\n"
+		logFn(fullFormat, args...)
+	}
+}
+
+func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logFn LogFunc) []model.FlatResource {
+	log := createPrefixedLogger(logFn, "🐳 ECS Crawler: ")
 	defer ecsCrawlTimer(log)()
 	// Process containers from all regions in parallel
 	allResources := make([]model.FlatResource, 0)
