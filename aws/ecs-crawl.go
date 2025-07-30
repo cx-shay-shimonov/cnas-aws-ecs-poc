@@ -23,32 +23,25 @@ import (
 )
 
 type ContainerData struct {
-	Name            string
-	Type            resType.ResourceType
-	Image           string
-	ImageSHA        string
-	Metadata        map[string]string // to is in use??
-	PublicExposed   bool
-	CorrelationData string
-	ClusterName     string
-	ClusterType     resType.ResourceGroupType
-	ProviderID      string
+	Name          string
+	Type          resType.ResourceType
+	Image         string
+	ImageSHA      string
+	PublicExposed bool
+	ClusterName   string
+	ClusterType   resType.ResourceGroupType
+	ProviderID    string
 
 	// Container-specific fields only (no duplicates from StoreResourceFlat)
-	Status          string
-	RuntimeID       string
-	TaskARN         string
-	TaskStatus      string
-	HostPort        int
-	ContainerPort   int
-	Protocol        string
-	PrivateIP       string
-	NetworkMode     string
-	SecurityGroups  string // todo: used only on meta data, not in use?
-	OpenPorts       string // todo: not in use?
-	ExposureReasons string
-	Region          string
-	Timestamp       string
+	Status        string
+	RuntimeID     string
+	TaskARN       string
+	TaskStatus    string
+	HostPort      int
+	ContainerPort int
+	Protocol      string
+	PrivateIP     string
+	Region        string
 }
 
 // NetworkExposureAnalysis contains detailed network exposure information
@@ -112,7 +105,7 @@ func EcsCrawlUsingWaitGroupAndMutex(regions []string, ctx context.Context, cfg *
 	return allResources
 }
 
-// Alternative implementation using channels instead of mutex and waitgroup
+// EcsCrawl Alternative implementation using channels instead of mutex and waitgroup
 func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
 	defer ecsCrawlTimer(cnasLogger)()
 
@@ -156,7 +149,7 @@ func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger
 	return allResources
 }
 
-// Option 2: Worker Pool Pattern
+// EcsCrawlWithWorkerPool Option 2: Worker Pool Pattern
 func EcsCrawlWithWorkerPool(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
 	defer ecsCrawlTimer(cnasLogger)()
 
@@ -210,7 +203,7 @@ func EcsCrawlWithWorkerPool(regions []string, ctx context.Context, cfg *aws.Conf
 	return allResources
 }
 
-// Option 3: Pipeline Pattern with Done Channel
+// EcsCrawlWithPipeline Option 3: Pipeline Pattern with Done Channel
 func EcsCrawlWithPipeline(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
 	defer ecsCrawlTimer(cnasLogger)()
 
@@ -271,7 +264,7 @@ func EcsCrawlWithPipeline(regions []string, ctx context.Context, cfg *aws.Config
 	return allResources
 }
 
-// Option 4: Simple Channel with Context Cancellation
+// EcsCrawlWithContext Option 4: Simple Channel with Context Cancellation
 func EcsCrawlWithContext(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
 	defer ecsCrawlTimer(cnasLogger)()
 
@@ -340,8 +333,8 @@ func crawlRegionResources(regionName string, ctx context.Context, cfg aws.Config
 
 	regionClustersList, err := listRegionClusters(ctx, ecsClient, cnasLogger)
 	if err != nil {
-		cnasLogger.Err(err).Msgf("🐳 ECS Crawler: failed to list client regionClustersList: %s", err.Error())
-		return nil, fmt.Errorf("failed to list client regionClustersList: %w", err)
+		cnasLogger.Err(err).Msgf("🐳 ECS Crawler: failed to list client in region: %s.", regionName)
+		return nil, err
 	}
 	regionContainersDataList, err := listRegionContainersData(ecsClient, regionClustersList, regionName, cnasLogger)
 
@@ -379,9 +372,9 @@ func extractResources(containersData []ContainerData, taskArnContainerNetworkMap
 		// Get network analysis for this containerData's task
 		containerNetworkAnalysis := taskArnContainerNetworkMap[containerData.TaskARN]
 
-		publicExposed := summarizeContainerNetworkAnalysis(containerData, containerNetworkAnalysis)
+		setContainerNetworkPubliclyExposed(&containerData, containerNetworkAnalysis)
 
-		resourceFlatContainer := containerToResource(containerData, publicExposed, cnasLogger)
+		resourceFlatContainer := containerToResource(containerData)
 
 		allResourcesList = append(allResourcesList, resourceFlatContainer)
 	}
@@ -401,7 +394,6 @@ func createRegionClients(regionName string, cfg aws.Config, cnasLogger zerolog.L
 }
 
 func listRegionClusters(ctx context.Context, client *ecs.Client, cnasLogger zerolog.Logger) ([]*types2.Cluster, error) {
-	// Print detailed request information
 
 	var allClusters []*types2.Cluster
 
@@ -412,7 +404,7 @@ func listRegionClusters(ctx context.Context, client *ecs.Client, cnasLogger zero
 	clustersList, err := client.ListClusters(ctx, input)
 	if err != nil {
 		cnasLogger.Err(err).Msgf("🐳 ECS Crawler: failed to list ECS clusters")
-		return nil, fmt.Errorf("failed to list ECS clusters: %w", err)
+		return nil, err
 	}
 
 	// Success - print results
@@ -770,19 +762,15 @@ func describeTasks(client *ecs.Client, clusterArn string, taskArnList []string) 
 func createContainerData(cluster *types2.Cluster, task *types2.Task, container *types2.Container, networkAnalysis *NetworkExposureAnalysis, region string) ContainerData {
 
 	containerData := ContainerData{
-		ClusterName:     aws.ToString(cluster.ClusterName),
-		Name:            aws.ToString(container.Name),
-		Image:           aws.ToString(container.Image),
-		Status:          aws.ToString(container.LastStatus),
-		RuntimeID:       aws.ToString(container.RuntimeId),
-		TaskARN:         aws.ToString(task.TaskArn),
-		TaskStatus:      aws.ToString(task.LastStatus),
-		CorrelationData: "",
-		Metadata:        make(map[string]string),
-		Region:          region,
-		Timestamp:       time.Now().Format("2006-01-02 15:04:05"),
+		ClusterName: aws.ToString(cluster.ClusterName),
+		Name:        aws.ToString(container.Name),
+		Image:       aws.ToString(container.Image),
+		Status:      aws.ToString(container.LastStatus),
+		RuntimeID:   aws.ToString(container.RuntimeId),
+		TaskARN:     aws.ToString(task.TaskArn),
+		TaskStatus:  aws.ToString(task.LastStatus),
+		Region:      region,
 	}
-	containerData.Metadata["strat-timestamp"] = time.Now().Format("2006-01-02 15:04:05")
 
 	// Network information - safely handle optional fields
 	if len(container.NetworkBindings) > 0 {
@@ -805,28 +793,11 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 		}
 	}
 
-	// Initialize network analysis fields
-	containerData.NetworkMode = "unknown"
-	containerData.SecurityGroups = ""
-	containerData.OpenPorts = ""
-	containerData.ExposureReasons = ""
-	// Enhanced network analysis data
 	if networkAnalysis != nil {
 		containerData.PublicExposed = networkAnalysis.IsPubliclyExposed
-		containerData.NetworkMode = networkAnalysis.NetworkMode
-		if len(networkAnalysis.SecurityGroups) > 0 {
-			containerData.SecurityGroups = fmt.Sprintf("%v", networkAnalysis.SecurityGroups)
-		}
-		if len(networkAnalysis.OpenPorts) > 0 {
-			containerData.OpenPorts = fmt.Sprintf("%v", networkAnalysis.OpenPorts)
-		}
-		if len(networkAnalysis.ExposureReasons) > 0 {
-			containerData.ExposureReasons = fmt.Sprintf("%v", networkAnalysis.ExposureReasons)
-		}
 	} else {
 		// Fallback to basic exposure logic
 		containerData.PublicExposed = containerData.HostPort > 0
-		containerData.NetworkMode = "unknown"
 	}
 
 	return containerData
@@ -851,7 +822,7 @@ func getTaskDetails(ctx context.Context, ecsClient *ecs.Client, clusterName stri
 	return &resp.Tasks[0], nil
 }
 
-func containerToResource(containerData ContainerData, publicExposed bool, cnasLogger zerolog.Logger) model.FlatResource {
+func containerToResource(containerData ContainerData) model.FlatResource {
 
 	// Create result with UUID - use the embedded StoreResourceFlat directly
 	result := model.FlatResource{
@@ -860,9 +831,9 @@ func containerToResource(containerData ContainerData, publicExposed bool, cnasLo
 			Name:          containerData.Name,
 			Type:          resType.ResourceType_CONTAINER,
 			Image:         containerData.Image,
-			ImageSha:      "", // Not available in current containerData data
+			ImageSha:      "",
 			Metadata:      nil,
-			PublicExposed: publicExposed,
+			PublicExposed: containerData.PublicExposed,
 			Correlation:   nil,
 			ClusterName:   containerData.ClusterName,
 			ClusterType:   resType.ResourceGroupType_ECS,
@@ -870,49 +841,10 @@ func containerToResource(containerData ContainerData, publicExposed bool, cnasLo
 			Region:        containerData.Region,
 		},
 	}
-	// Add timestamp to metadata
-	containerData.Metadata["end-timestamp"] = time.Now().Format("2006-01-02 15:04:05")
-	cnasLogger.Info().Msgf("🐳 ECS Crawler: Region %s Container %s, Network correlation data: %s", containerData.Region, containerData.Name, containerData.CorrelationData)
-	cnasLogger.Info().Msgf("🐳 ECS Crawler: Region %s Container %s metadata: %v", containerData.Region, containerData.Name, containerData.Metadata)
 	return result
 }
 
-func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNetworkAnalysis *NetworkExposureAnalysis) bool {
-	// todo
-	// Create enhanced metadata map
-	metadata := containerData.Metadata
-	metadata["task_status"] = containerData.TaskStatus
-	metadata["timestamp"] = containerData.Timestamp
-	if containerData.Protocol != "" {
-		metadata["protocol"] = containerData.Protocol
-	}
-	if containerData.HostPort > 0 {
-		metadata["host_port"] = strconv.Itoa(containerData.HostPort)
-	}
-	if containerData.ContainerPort > 0 {
-		metadata["container_port"] = strconv.Itoa(containerData.ContainerPort)
-	}
-
-	// todo
-	// Add network analysis data to metadata
-	if containerNetworkAnalysis != nil {
-		metadata["network_mode"] = containerNetworkAnalysis.NetworkMode
-		metadata["has_public_ip"] = strconv.FormatBool(containerNetworkAnalysis.HasPublicIP)
-		metadata["is_in_public_subnet"] = strconv.FormatBool(containerNetworkAnalysis.IsInPublicSubnet)
-		if len(containerNetworkAnalysis.SecurityGroups) > 0 {
-			metadata["security_groups"] = fmt.Sprintf("%v", containerNetworkAnalysis.SecurityGroups)
-		}
-		if len(containerNetworkAnalysis.OpenPorts) > 0 {
-			metadata["open_ports"] = fmt.Sprintf("%v", containerNetworkAnalysis.OpenPorts)
-		}
-		if len(containerNetworkAnalysis.ExposureReasons) > 0 {
-			metadata["exposure_reasons"] = fmt.Sprintf("%v", containerNetworkAnalysis.ExposureReasons)
-		}
-		if len(containerNetworkAnalysis.NetworkInterfaces) > 0 {
-			metadata["network_interfaces"] = fmt.Sprintf("%v", containerNetworkAnalysis.NetworkInterfaces)
-		}
-	}
-	// todo : isPubliclyExposed := containerNetworkAnalysis != nil && containerNetworkAnalysis.IsPubliclyExposed
+func setContainerNetworkPubliclyExposed(containerData *ContainerData, containerNetworkAnalysis *NetworkExposureAnalysis) /*bool*/ {
 	// Enhanced public exposure determination
 	var publicExposed bool
 	if containerNetworkAnalysis != nil {
@@ -922,16 +854,7 @@ func summarizeContainerNetworkAnalysis(containerData ContainerData, containerNet
 		publicExposed = containerData.HostPort > 0
 	}
 
-	//Create enhanced correlation string with network data
-	correlationData := fmt.Sprintf("runtime_id:%s,task_arn:%s", containerData.RuntimeID, containerData.TaskARN)
-	if containerData.PrivateIP != "" {
-		correlationData += fmt.Sprintf(",private_ip:%s", containerData.PrivateIP)
-	}
-	if containerNetworkAnalysis != nil && len(containerNetworkAnalysis.PublicIPs) > 0 {
-		correlationData += fmt.Sprintf(",public_ips:%v", containerNetworkAnalysis.PublicIPs)
-	}
-	containerData.CorrelationData = correlationData
-	return publicExposed
+	containerData.PublicExposed = publicExposed
 }
 
 func createTaskArnContainerNetworkMap(ctx context.Context, ecsClient *ecs.Client, ec2Client *ec2.Client, elbClient *elasticloadbalancingv2.Client, taskArnContainerDataMap map[string]ContainerData, cnasLogger zerolog.Logger) map[string]*NetworkExposureAnalysis {
@@ -996,7 +919,6 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 		// Extract network mode (awsvpc, bridge, host)
 		// This would require describing the task definition, for now assume awsvpc based on ENIs
 		if len(task.Attachments) > 0 {
-
 			analysis.NetworkMode = "awsvpc"
 		} else {
 			analysis.NetworkMode = "bridge"
