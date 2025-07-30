@@ -334,18 +334,22 @@ func crawlRegionResources(regionName string, ctx context.Context, cfg aws.Config
 		cnasLogger.Err(err).Msgf("🐳 ECS Crawler: failed to list client in region: %s.", regionName)
 		return nil, err
 	}
-	regionContainersDataList, err := listRegionContainersData(ecsClient, regionClustersList, regionName, cnasLogger)
+	regionContainersDataList, err := listRegionContainersData(ctx, ecsClient, regionClustersList, regionName, cnasLogger)
 
 	if err != nil {
 		cnasLogger.Err(err).Msgf("🐳 ECS Crawler: operation failed in region %s: %v", regionName, err)
 		return nil, err
 	}
 
-	cnasLogger.Info().Msgf("🐳 ECS Crawler: 📊 Found %d containers in region %s", len(regionContainersDataList), regionName)
+	cnasLogger.Info().Msgf(
+		"🐳 ECS Crawler: 📊 Found %d containers in region %s",
+		len(regionContainersDataList),
+		regionName,
+	)
 	totalContainers += len(regionContainersDataList)
 
 	// Perform network analysis and generate flat resources
-	if len(regionContainersDataList) <= 0 {
+	if len(regionContainersDataList) == 0 {
 		cnasLogger.Warn().Msgf("🐳 ECS Crawler: 📝 No containers found in region %s", regionName)
 		return nil, fmt.Errorf("no containers found in region %s", regionName)
 	}
@@ -354,17 +358,32 @@ func crawlRegionResources(regionName string, ctx context.Context, cfg aws.Config
 	taskArnContainerMap := createTaskArnContainerMap(regionContainersDataList)
 
 	// Analyze each container task's network exposure
-	taskArnContainerNetworkMap := createTaskArnContainerNetworkMap(ctx, ecsClient, ec2Client, elbClient, taskArnContainerMap, cnasLogger)
+	taskArnContainerNetworkMap := createTaskArnContainerNetworkMap(
+		ctx,
+		ecsClient,
+		ec2Client,
+		elbClient,
+		taskArnContainerMap,
+		cnasLogger,
+	)
 
 	regionResourcesList := extractResources(regionContainersDataList, taskArnContainerNetworkMap, cnasLogger)
 
-	cnasLogger.Info().Msgf("🐳 ECS Crawler: ✅ Successfully analyzed %d containers in region %s", len(regionResourcesList), regionName)
+	cnasLogger.Info().Msgf(
+		"🐳 ECS Crawler: ✅ Successfully analyzed %d containers in region %s",
+		len(regionResourcesList),
+		regionName,
+	)
 
 	return regionResourcesList, nil
 }
 
-func extractResources(containersData []ContainerData, taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis, cnasLogger zerolog.Logger) []model.FlatResource {
-	var allResourcesList []model.FlatResource
+func extractResources(
+	containersData []ContainerData,
+	taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis,
+	cnasLogger zerolog.Logger,
+) []model.FlatResource {
+	allResourcesList := make([]model.FlatResource, 0, len(containersData))
 	// Map each containerData to FlatResourceResult with enhanced network data
 	for _, containerData := range containersData {
 		// Get network analysis for this containerData's task
@@ -377,20 +396,33 @@ func extractResources(containersData []ContainerData, taskArnContainerNetworkMap
 		allResourcesList = append(allResourcesList, resourceFlatContainer)
 	}
 
-	cnasLogger.Info().Msgf("🐳 ECS Crawler: 📄 MapAWSToFlatResource Results Summary: Generated %d flat resources", len(allResourcesList))
+	cnasLogger.Info().Msgf(
+		"🐳 ECS Crawler: 📄 MapAWSToFlatResource Results Summary: Generated %d flat resources",
+		len(allResourcesList),
+	)
+
 	return allResourcesList
 }
 
-func createRegionClients(regionName string, cfg aws.Config, cnasLogger zerolog.Logger) (*ecs.Client, *ec2.Client, *elasticloadbalancingv2.Client) {
+func createRegionClients(
+	regionName string,
+	cfg aws.Config,
+	cnasLogger zerolog.Logger,
+) (ecsClient *ecs.Client, ec2Client *ec2.Client, elbClient *elasticloadbalancingv2.Client) {
 	// Create clients for this region
 	cnasLogger.Info().Msgf("🐳 ECS Crawler: 🔧 Creating AWS clients for region %s...", regionName)
-	ecsClient := ecs.NewFromConfig(cfg)
-	ec2Client := ec2.NewFromConfig(cfg)
-	elbClient := elasticloadbalancingv2.NewFromConfig(cfg)
+	ecsClient = ecs.NewFromConfig(cfg)
+	ec2Client = ec2.NewFromConfig(cfg)
+	elbClient = elasticloadbalancingv2.NewFromConfig(cfg)
+
 	return ecsClient, ec2Client, elbClient
 }
 
-func listRegionClusters(ctx context.Context, client *ecs.Client, cnasLogger zerolog.Logger) ([]*types2.Cluster, error) {
+func listRegionClusters(
+	ctx context.Context,
+	client *ecs.Client,
+	cnasLogger zerolog.Logger,
+) ([]*types2.Cluster, error) {
 
 	var allClusters []*types2.Cluster
 	var nextToken *string
@@ -411,11 +443,19 @@ func listRegionClusters(ctx context.Context, client *ecs.Client, cnasLogger zero
 		for i, clusterArn := range clustersList.ClusterArns {
 
 			// Describe each cluster
-			cnasLogger.Info().Msgf("🐳 ECS Crawler:      🔍 Describing cluster details:  %d). clusterArn: %s", i+1, clusterArn)
+			cnasLogger.Info().Msgf(
+				"🐳 ECS Crawler:      🔍 Describing cluster details:  %d). clusterArn: %s",
+				i+1,
+				clusterArn,
+			)
 
-			cluster, err := describeCluster(client, clusterArn)
+			cluster, err := describeCluster(ctx, client, clusterArn)
 			if err != nil {
-				cnasLogger.Warn().Msgf("🐳 ECS Crawler:      ❌ Failed to describe cluster %s: %v", clusterArn, err)
+				cnasLogger.Warn().Msgf(
+					"🐳 ECS Crawler:      ❌ Failed to describe cluster %s: %v",
+					clusterArn,
+					err,
+				)
 				continue
 			}
 
@@ -430,25 +470,43 @@ func listRegionClusters(ctx context.Context, client *ecs.Client, cnasLogger zero
 		}
 		nextToken = clustersList.NextToken
 	}
+
 	return allClusters, nil
 }
 
-func listRegionContainersData(client *ecs.Client, clusters []*types2.Cluster, region string, cnasLogger zerolog.Logger) ([]ContainerData, error) {
+func listRegionContainersData(
+	ctx context.Context,
+	client *ecs.Client,
+	clusters []*types2.Cluster,
+	region string,
+	cnasLogger zerolog.Logger,
+) ([]ContainerData, error) {
 
 	allContainersDataList := make([]ContainerData, 0)
 	for _, cluster := range clusters {
 		cnasLogger.Info().Msgf("🐳 ECS Crawler: 🔍 Processing cluster: %s", aws.ToString(cluster.ClusterName))
-		clusterContainersDataList, err := listContainersInCluster(client, cluster, region, cnasLogger)
+		clusterContainersDataList, err := listContainersInCluster(ctx, client, cluster, region, cnasLogger)
 		if err != nil {
-			cnasLogger.Err(err).Msgf("🐳 ECS Crawler:      ❌ Failed to list containers in cluster %s: %v", aws.ToString(cluster.ClusterName), err)
+			cnasLogger.Err(err).Msgf(
+				"🐳 ECS Crawler:      ❌ Failed to list containers in cluster %s: %v",
+				aws.ToString(cluster.ClusterName),
+				err,
+			)
 			return allContainersDataList, err
 		}
 		allContainersDataList = append(allContainersDataList, clusterContainersDataList...)
 	}
+
 	return allContainersDataList, nil
 }
 
-func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region string, cnasLogger zerolog.Logger) ([]ContainerData, error) {
+func listContainersInCluster(
+	ctx context.Context,
+	client *ecs.Client,
+	cluster *types2.Cluster,
+	region string,
+	cnasLogger zerolog.Logger,
+) ([]ContainerData, error) {
 	clusterArn := aws.ToString(cluster.ClusterArn)
 	clusterName := aws.ToString(cluster.ClusterName)
 	cnasLogger.Info().Msgf("🐳 ECS Crawler:      🔍 Listing containersDataList in cluster: %s", clusterName)
@@ -456,9 +514,13 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 	var containersDataList []ContainerData
 
 	// Get tasks in the cluster
-	taskArnList, err := listTasks(client, clusterArn)
+	taskArnList, err := listTasks(ctx, client, clusterArn)
 	if err != nil {
-		cnasLogger.Err(err).Msgf("🐳 ECS Crawler:      ❌ Failed to list tasks in cluster %s: %v", clusterName, err)
+		cnasLogger.Err(err).Msgf(
+			"🐳 ECS Crawler:      ❌ Failed to list tasks in cluster %s: %v",
+			clusterName,
+			err,
+		)
 
 		return nil, err
 	}
@@ -472,15 +534,17 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 	cnasLogger.Info().Msgf("🐳 ECS Crawler:      📊 Found %d running tasks", len(taskArnList))
 
 	// Describe tasks to get container details
-	tasks, err := describeTasks(client, clusterArn, taskArnList)
+	tasks, err := describeTasks(ctx, client, clusterArn, taskArnList)
 	if err != nil {
-		cnasLogger.Err(err).Msgf("🐳 ECS Crawler:      ❌ Failed to describe tasks in cluster %s: %v", clusterName, err)
+		cnasLogger.Err(err).Msgf(
+			"🐳 ECS Crawler:      ❌ Failed to describe tasks in cluster %s: %v",
+			clusterName,
+			err,
+		)
 
 		return nil, err
 	}
 
-	// Print container details for each task
-	var containerDetails []string
 	totalContainers := 0
 
 	for taskIndex, task := range tasks {
@@ -489,7 +553,10 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 		cnasLogger.Info().Msgf("🐳 ECS Crawler:           Desired Status: %s", aws.ToString(task.DesiredStatus))
 
 		if task.TaskDefinitionArn != nil {
-			cnasLogger.Info().Msgf("🐳 ECS Crawler:           Task Definition: %s", aws.ToString(task.TaskDefinitionArn))
+			cnasLogger.Info().Msgf(
+				"🐳 ECS Crawler:           Task Definition: %s",
+				aws.ToString(task.TaskDefinitionArn),
+			)
 		}
 
 		if len(task.Containers) == 0 {
@@ -502,7 +569,11 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 		for containerIndex, container := range task.Containers {
 			// Set region for each container
 			totalContainers++
-			cnasLogger.Info().Msgf("🐳 ECS Crawler:             %d. Container Name: %s", containerIndex+1, aws.ToString(container.Name))
+			cnasLogger.Info().Msgf(
+				"🐳 ECS Crawler:             %d. Container Name: %s",
+				containerIndex+1,
+				aws.ToString(container.Name),
+			)
 
 			if container.Image != nil {
 				cnasLogger.Info().Msgf("🐳 ECS Crawler:                Image: %s", aws.ToString(container.Image))
@@ -522,7 +593,11 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 				cnasLogger.Info().Msgf("🐳 ECS Crawler:                Network Bindings:")
 				for _, binding := range container.NetworkBindings {
 					if binding.HostPort != nil && binding.ContainerPort != nil {
-						cnasLogger.Info().Msgf("🐳 ECS Crawler:                  - Host:%d -> Container:%d", *binding.HostPort, *binding.ContainerPort)
+						cnasLogger.Info().Msgf(
+							"🐳 ECS Crawler:                  - Host:%d -> Container:%d",
+							*binding.HostPort,
+							*binding.ContainerPort,
+						)
 						if binding.Protocol != "" {
 							cnasLogger.Info().Msgf("🐳 ECS Crawler:  (%s)", binding.Protocol)
 						}
@@ -535,18 +610,13 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 				cnasLogger.Info().Msgf("🐳 ECS Crawler:                Network Interfaces:")
 				for _, netInterface := range container.NetworkInterfaces {
 					if netInterface.PrivateIpv4Address != nil {
-						cnasLogger.Info().Msgf("🐳 ECS Crawler:                  - Private IP: %s\n", aws.ToString(netInterface.PrivateIpv4Address))
+						cnasLogger.Info().Msgf(
+							"🐳 ECS Crawler:                  - Private IP: %s\n",
+							aws.ToString(netInterface.PrivateIpv4Address),
+						)
 					}
 				}
 			}
-
-			// Log container details
-			containerDetailStr := fmt.Sprintf("Container: %s | Image: %s | Status: %s | Task: %s",
-				aws.ToString(container.Name),
-				aws.ToString(container.Image),
-				aws.ToString(container.LastStatus),
-				aws.ToString(task.TaskArn))
-			containerDetails = append(containerDetails, containerDetailStr)
 
 			// Create container data object WITHOUT adding to CSV/JSON yet
 			containerData := createContainerData(cluster, &task, &container, nil, region)
@@ -557,13 +627,23 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 	}
 
 	// Summary and logging
-	cnasLogger.Info().Msgf("🐳 ECS Crawler:      ✅ Found %d containersDataList across %d tasks in cluster %s", totalContainers, len(tasks), clusterName)
+	cnasLogger.Info().Msgf(
+		"🐳 ECS Crawler:      ✅ Found %d containersDataList across %d tasks in cluster %s",
+		totalContainers,
+		len(tasks),
+		clusterName,
+	)
 
 	return containersDataList, nil
 }
 
-// analyzeENI analyzes a specific ENI for public exposure
-func analyzeENI(ctx context.Context, ec2Client *ec2.Client, eniId string, cnasLogger zerolog.Logger) (*ENIAnalysis, error) {
+// analyzeENI analyzes a specific ENI for public exposure.
+func analyzeENI(
+	ctx context.Context,
+	ec2Client *ec2.Client,
+	eniId string,
+	cnasLogger zerolog.Logger,
+) (*ENIAnalysis, error) {
 	analysis := &ENIAnalysis{
 		SecurityGroups: []string{},
 		OpenPorts:      []string{},
@@ -602,7 +682,11 @@ func analyzeENI(ctx context.Context, ec2Client *ec2.Client, eniId string, cnasLo
 	if eni.SubnetId != nil {
 		isPublic, err := isSubnetPublic(ctx, ec2Client, *eni.SubnetId)
 		if err != nil {
-			cnasLogger.Warn().Msgf("🐳 ECS Crawler: ⚠️ Warning: Failed to check if subnet %s is public: %v\n", *eni.SubnetId, err)
+			cnasLogger.Warn().Msgf(
+				"🐳 ECS Crawler: ⚠️ Warning: Failed to check if subnet %s is public: %v\n",
+				*eni.SubnetId,
+				err,
+			)
 		} else {
 			analysis.IsInPublicSubnet = isPublic
 		}
@@ -628,7 +712,7 @@ func analyzeENI(ctx context.Context, ec2Client *ec2.Client, eniId string, cnasLo
 	return analysis, nil
 }
 
-// isSubnetPublic determines if a subnet is public by checking route table
+// isSubnetPublic determines if a subnet is public by checking route table.
 func isSubnetPublic(ctx context.Context, ec2Client *ec2.Client, subnetId string) (bool, error) {
 	// Get route tables associated with this subnet
 	routeTablesResp, err := ec2Client.DescribeRouteTables(ctx, &ec2.DescribeRouteTablesInput{
@@ -662,7 +746,7 @@ func isSubnetPublic(ctx context.Context, ec2Client *ec2.Client, subnetId string)
 	return false, nil
 }
 
-// analyzeSecurityGroupRules analyzes security group rules to find open ports
+// analyzeSecurityGroupRules analyzes security group rules to find open ports.
 func analyzeSecurityGroupRules(ctx context.Context, ec2Client *ec2.Client, sgIds []string) ([]string, error) {
 	if len(sgIds) == 0 {
 		return []string{}, nil
@@ -696,15 +780,18 @@ func analyzeSecurityGroupRules(ctx context.Context, ec2Client *ec2.Client, sgIds
 	return openPorts, nil
 }
 
-// LoadBalancerAnalysis contains load balancer exposure analysis
+// LoadBalancerAnalysis contains load balancer exposure analysis.
 type LoadBalancerAnalysis struct {
 	LoadBalancers []string
 }
 
-// todo: Implement load balancer analysis
-// analyzeLoadBalancerExposure checks if task is associated with load balancers
-func analyzeLoadBalancerExposure(ctx context.Context, client *elasticloadbalancingv2.Client, cnasLogger zerolog.Logger) (*LoadBalancerAnalysis, error) {
-	//_, err := client.DescribeLoadBalancerAttributes(ctx)
+// analyzeLoadBalancerExposure checks if task is associated with load balancers.
+func analyzeLoadBalancerExposure(
+	ctx context.Context,
+	client *elasticloadbalancingv2.Client,
+	cnasLogger zerolog.Logger,
+) (*LoadBalancerAnalysis, error) {
+	// _, err := client.DescribeLoadBalancerAttributes(ctx)
 	analysis := &LoadBalancerAnalysis{
 		LoadBalancers: []string{},
 	}
@@ -719,11 +806,12 @@ func analyzeLoadBalancerExposure(ctx context.Context, client *elasticloadbalanci
 	// 3. Find load balancers associated with those target groups
 
 	cnasLogger.Warn().Msgf("🐳 ECS Crawler: ⚠️ Load balancer analysis not fully implemented - returning empty results\n")
+
 	return analysis, fmt.Errorf("Todo Analyzing load balancer exposure... \n")
 }
 
-func describeCluster(client *ecs.Client, clusterArn string) (*types2.Cluster, error) {
-	resp, err := client.DescribeClusters(context.TODO(), &ecs.DescribeClustersInput{
+func describeCluster(ctx context.Context, client *ecs.Client, clusterArn string) (*types2.Cluster, error) {
+	resp, err := client.DescribeClusters(ctx, &ecs.DescribeClustersInput{
 		Clusters: []string{clusterArn},
 	})
 	if err != nil {
@@ -732,26 +820,33 @@ func describeCluster(client *ecs.Client, clusterArn string) (*types2.Cluster, er
 	if len(resp.Clusters) > 0 {
 		return &resp.Clusters[0], nil
 	}
+
 	return nil, nil
 }
 
-func listTasks(client *ecs.Client, clusterArn string) ([]string, error) {
-	output, err := client.ListTasks(context.TODO(), &ecs.ListTasksInput{
+func listTasks(ctx context.Context, client *ecs.Client, clusterArn string) ([]string, error) {
+	output, err := client.ListTasks(ctx, &ecs.ListTasksInput{
 		Cluster:       &clusterArn,
 		DesiredStatus: types2.DesiredStatusRunning, // Only running tasks
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	return output.TaskArns, nil
 }
 
-func describeTasks(client *ecs.Client, clusterArn string, taskArnList []string) ([]types2.Task, error) {
+func describeTasks(
+	ctx context.Context,
+	client *ecs.Client,
+	clusterArn string,
+	taskArnList []string,
+) ([]types2.Task, error) {
 	if len(taskArnList) == 0 {
 		return nil, nil
 	}
 
-	output, err := client.DescribeTasks(context.TODO(), &ecs.DescribeTasksInput{
+	output, err := client.DescribeTasks(ctx, &ecs.DescribeTasksInput{
 		Cluster: &clusterArn,
 		Tasks:   taskArnList,
 	})
@@ -762,8 +857,15 @@ func describeTasks(client *ecs.Client, clusterArn string, taskArnList []string) 
 	return output.Tasks, nil
 }
 
-// createContainerData creates a ContainerData object from cluster, task, and container information with optional network analysis
-func createContainerData(cluster *types2.Cluster, task *types2.Task, container *types2.Container, networkAnalysis *NetworkExposureAnalysis, region string) ContainerData {
+// createContainerData creates a ContainerData object from cluster, task, and container information
+// with optional network analysis.
+func createContainerData(
+	cluster *types2.Cluster,
+	task *types2.Task,
+	container *types2.Container,
+	networkAnalysis *NetworkExposureAnalysis,
+	region string,
+) ContainerData {
 
 	containerData := ContainerData{
 		ClusterName: aws.ToString(cluster.ClusterName),
@@ -807,8 +909,12 @@ func createContainerData(cluster *types2.Cluster, task *types2.Task, container *
 	return containerData
 }
 
-// getTaskDetails retrieves task details needed for network analysis
-func getTaskDetails(ctx context.Context, ecsClient *ecs.Client, clusterName string, taskArn string) (*types2.Task, error) {
+// getTaskDetails retrieves task details needed for network analysis.
+func getTaskDetails(
+	ctx context.Context,
+	ecsClient *ecs.Client,
+	clusterName, taskArn string,
+) (*types2.Task, error) {
 	input := &ecs.DescribeTasksInput{
 		Cluster: aws.String(clusterName),
 		Tasks:   []string{taskArn},
@@ -845,10 +951,14 @@ func containerToResource(containerData ContainerData) model.FlatResource {
 			Region:        containerData.Region,
 		},
 	}
+
 	return result
 }
 
-func setContainerNetworkPubliclyExposed(containerData *ContainerData, containerNetworkAnalysis *NetworkExposureAnalysis) /*bool*/ {
+func setContainerNetworkPubliclyExposed(
+	containerData *ContainerData,
+	containerNetworkAnalysis *NetworkExposureAnalysis,
+) {
 	// Enhanced public exposure determination
 	var publicExposed bool
 	if containerNetworkAnalysis != nil {
@@ -861,7 +971,14 @@ func setContainerNetworkPubliclyExposed(containerData *ContainerData, containerN
 	containerData.PublicExposed = publicExposed
 }
 
-func createTaskArnContainerNetworkMap(ctx context.Context, ecsClient *ecs.Client, ec2Client *ec2.Client, elbClient *elasticloadbalancingv2.Client, taskArnContainerDataMap map[string]ContainerData, cnasLogger zerolog.Logger) map[string]*NetworkExposureAnalysis {
+func createTaskArnContainerNetworkMap(
+	ctx context.Context,
+	ecsClient *ecs.Client,
+	ec2Client *ec2.Client,
+	elbClient *elasticloadbalancingv2.Client,
+	taskArnContainerDataMap map[string]ContainerData,
+	cnasLogger zerolog.Logger,
+) map[string]*NetworkExposureAnalysis {
 	taskArnContainerNetworkMap := make(map[string]*NetworkExposureAnalysis)
 	for taskArn, container := range taskArnContainerDataMap {
 		cnasLogger.Info().Msgf("🐳 ECS Crawler: 🔍 Analyzing network exposure for task: %s", taskArn)
@@ -893,6 +1010,7 @@ func createTaskArnContainerNetworkMap(ctx context.Context, ecsClient *ecs.Client
 
 		taskArnContainerNetworkMap[taskArn] = networkAnalysis
 	}
+
 	return taskArnContainerNetworkMap
 }
 
@@ -901,13 +1019,20 @@ func createTaskArnContainerMap(containerData []ContainerData) map[string]Contain
 	for _, container := range containerData {
 		taskArnContainerDataMap[container.TaskARN] = container
 	}
+
 	return taskArnContainerDataMap
 }
 
 // analyzeNetworkExposure performs comprehensive network exposure analysis for a task
 //
 //goland:noinspection SpellCheckingInspection
-func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Client *elasticloadbalancingv2.Client, task *types2.Task, cnasLogger zerolog.Logger) (*NetworkExposureAnalysis, error) {
+func analyzeNetworkExposure(
+	ctx context.Context,
+	ec2Client *ec2.Client,
+	elbv2Client *elasticloadbalancingv2.Client,
+	task *types2.Task,
+	cnasLogger zerolog.Logger,
+) (*NetworkExposureAnalysis, error) {
 	analysis := &NetworkExposureAnalysis{
 		ExposureReasons:   []string{},
 		SecurityGroups:    []string{},
@@ -989,6 +1114,7 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 	analysis.IsPubliclyExposed = analysis.HasPublicIP ||
 		(analysis.IsInPublicSubnet && len(analysis.OpenPorts) > 0) ||
 		len(analysis.LoadBalancers) > 0
+
 	return analysis, nil
 }
 
