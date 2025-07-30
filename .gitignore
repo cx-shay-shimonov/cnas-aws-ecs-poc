@@ -53,3 +53,4 @@ node_modules/
 /run.sh
 /main
 /aws-ecs-project
+/aws-ecs-crawler

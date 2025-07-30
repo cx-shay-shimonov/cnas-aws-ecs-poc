@@ -3,10 +3,11 @@ package aws
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"aws-ecs-project/grpcType"
 	resType "aws-ecs-project/grpcType"
@@ -75,7 +76,7 @@ type ENIAnalysis struct {
 	PublicIPs        []string
 }
 
-func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
+func EcsCrawlUsingWaitGroupAndMutex(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
 
 	defer ecsCrawlTimer(cnasLogger)()
 	// Process containers from all regions in parallel
@@ -109,6 +110,222 @@ func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger
 	wg.Wait()
 	cnasLogger.Info().Msgf("🐳 ECS Crawler: Completed processing %d regions, found %d total resources", len(regions), len(allResources))
 	return allResources
+}
+
+// Alternative implementation using channels instead of mutex and waitgroup
+func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
+	defer ecsCrawlTimer(cnasLogger)()
+
+	// Create channels for coordination
+	type regionResult struct {
+		resources []model.FlatResource
+		region    string
+		err       error
+	}
+
+	resultChan := make(chan regionResult, len(regions))
+
+	// Start workers for each region
+	for _, region := range regions {
+		go func(regionName string) {
+			// Create a copy of config for this region to avoid race conditions
+			regionCfg := cfg.Copy()
+			regionCfg.Region = regionName
+
+			regionResources, err := crawlRegionResources(regionName, ctx, regionCfg, cnasLogger)
+			if err != nil {
+				cnasLogger.Warn().Msgf("🐳 ECS Crawler: Failed to process region %s: %v", regionName, err)
+				resultChan <- regionResult{nil, regionName, err}
+				return
+			}
+
+			resultChan <- regionResult{regionResources, regionName, nil}
+		}(region)
+	}
+
+	// Collect results
+	allResources := make([]model.FlatResource, 0)
+	for i := 0; i < len(regions); i++ {
+		result := <-resultChan
+		if result.err == nil {
+			allResources = append(allResources, result.resources...)
+		}
+	}
+
+	cnasLogger.Info().Msgf("🐳 ECS Crawler: Completed processing %d regions, found %d total resources", len(regions), len(allResources))
+	return allResources
+}
+
+// Option 2: Worker Pool Pattern
+func EcsCrawlWithWorkerPool(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
+	defer ecsCrawlTimer(cnasLogger)()
+
+	// Create channels
+	jobs := make(chan string, len(regions))
+	results := make(chan []model.FlatResource, len(regions))
+	errors := make(chan error, len(regions))
+
+	// Number of workers (can be adjusted based on needs)
+	numWorkers := min(len(regions), 10) // Max 10 concurrent workers
+
+	// Start workers
+	for w := 0; w < numWorkers; w++ {
+		go func() {
+			for regionName := range jobs {
+				// Create a copy of config for this region
+				regionCfg := cfg.Copy()
+				regionCfg.Region = regionName
+
+				regionResources, err := crawlRegionResources(regionName, ctx, regionCfg, cnasLogger)
+				if err != nil {
+					cnasLogger.Warn().Msgf("🐳 ECS Crawler: Failed to process region %s: %v", regionName, err)
+					errors <- err
+					results <- nil
+					continue
+				}
+
+				errors <- nil
+				results <- regionResources
+			}
+		}()
+	}
+
+	// Send jobs
+	for _, region := range regions {
+		jobs <- region
+	}
+	close(jobs)
+
+	// Collect results
+	allResources := make([]model.FlatResource, 0)
+	for i := 0; i < len(regions); i++ {
+		err := <-errors
+		result := <-results
+		if err == nil && result != nil {
+			allResources = append(allResources, result...)
+		}
+	}
+
+	cnasLogger.Info().Msgf("🐳 ECS Crawler: Completed processing %d regions, found %d total resources", len(regions), len(allResources))
+	return allResources
+}
+
+// Option 3: Pipeline Pattern with Done Channel
+func EcsCrawlWithPipeline(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
+	defer ecsCrawlTimer(cnasLogger)()
+
+	// Create channels
+	resultChan := make(chan []model.FlatResource)
+	done := make(chan struct{})
+
+	// Result collector goroutine
+	allResources := make([]model.FlatResource, 0)
+	go func() {
+		defer close(done)
+		for resources := range resultChan {
+			if resources != nil {
+				allResources = append(allResources, resources...)
+			}
+		}
+	}()
+
+	// Start workers
+	for _, region := range regions {
+		go func(regionName string) {
+			defer func() {
+				// Signal completion by sending to result channel
+				resultChan <- nil
+			}()
+
+			// Create a copy of config for this region
+			regionCfg := cfg.Copy()
+			regionCfg.Region = regionName
+
+			regionResources, err := crawlRegionResources(regionName, ctx, regionCfg, cnasLogger)
+			if err != nil {
+				cnasLogger.Warn().Msgf("🐳 ECS Crawler: Failed to process region %s: %v", regionName, err)
+				return
+			}
+
+			resultChan <- regionResources
+		}(region)
+	}
+
+	// Wait for all workers to complete
+	completedWorkers := 0
+	for completedWorkers < len(regions) {
+		select {
+		case resources := <-resultChan:
+			if resources == nil {
+				completedWorkers++
+			} else {
+				allResources = append(allResources, resources...)
+			}
+		}
+	}
+
+	close(resultChan)
+	<-done // Wait for collector to finish
+
+	cnasLogger.Info().Msgf("🐳 ECS Crawler: Completed processing %d regions, found %d total resources", len(regions), len(allResources))
+	return allResources
+}
+
+// Option 4: Simple Channel with Context Cancellation
+func EcsCrawlWithContext(regions []string, ctx context.Context, cfg *aws.Config, cnasLogger zerolog.Logger) []model.FlatResource {
+	defer ecsCrawlTimer(cnasLogger)()
+
+	// Create a buffered channel to collect all results
+	resultChan := make(chan []model.FlatResource, len(regions))
+
+	// Start goroutines for each region
+	for _, region := range regions {
+		go func(regionName string) {
+			// Create a copy of config for this region
+			regionCfg := cfg.Copy()
+			regionCfg.Region = regionName
+
+			regionResources, err := crawlRegionResources(regionName, ctx, regionCfg, cnasLogger)
+			if err != nil {
+				cnasLogger.Warn().Msgf("🐳 ECS Crawler: Failed to process region %s: %v", regionName, err)
+				resultChan <- nil // Send nil to indicate completion even on error
+				return
+			}
+
+			// Send results or nil if context is cancelled
+			select {
+			case resultChan <- regionResources:
+			case <-ctx.Done():
+				cnasLogger.Warn().Msgf("🐳 ECS Crawler: Context cancelled for region %s", regionName)
+				resultChan <- nil
+			}
+		}(region)
+	}
+
+	// Collect results with timeout handling
+	allResources := make([]model.FlatResource, 0)
+	for i := 0; i < len(regions); i++ {
+		select {
+		case resources := <-resultChan:
+			if resources != nil {
+				allResources = append(allResources, resources...)
+			}
+		case <-ctx.Done():
+			cnasLogger.Warn().Msg("🐳 ECS Crawler: Context cancelled, stopping collection")
+			break
+		}
+	}
+
+	cnasLogger.Info().Msgf("🐳 ECS Crawler: Completed processing %d regions, found %d total resources", len(regions), len(allResources))
+	return allResources
+}
+
+// Helper function for min (since Go < 1.21 doesn't have built-in min for int)
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func crawlRegionResources(regionName string, ctx context.Context, cfg aws.Config, cnasLogger zerolog.Logger) ([]model.FlatResource, error) {
