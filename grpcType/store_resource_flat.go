@@ -28,6 +28,6 @@ type StoreResourceFlat struct {
 	Correlation   *Correlation
 	ClusterName   string
 	ClusterType   ResourceGroupType
-	ProviderID    string
+	ProviderId    string
 	Region        string
 }

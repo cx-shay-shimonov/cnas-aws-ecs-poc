@@ -52,7 +52,7 @@ func ExportCSV(resources []model.FlatResource) bool {
 			fmt.Sprintf("%t", resource.StoreResourceFlat.PublicExposed),
 			resource.StoreResourceFlat.ClusterName,
 			string(resource.StoreResourceFlat.ClusterType),
-			resource.StoreResourceFlat.ProviderID,
+			resource.StoreResourceFlat.ProviderId,
 			resource.StoreResourceFlat.Region,
 		}
 		if err := writer.Write(record); err != nil {

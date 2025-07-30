@@ -3,16 +3,12 @@ package aws
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog"
-
-	"aws-ecs-project/grpcType"
-	resType "aws-ecs-project/grpcType"
 	"aws-ecs-project/model"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -20,16 +16,18 @@ import (
 	types2 "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/google/uuid"
+
+	"aws-ecs-project/grpcType"
 )
 
 type ContainerData struct {
 	Name          string
-	Type          resType.ResourceType
+	Type          grpcType.ResourceType
 	Image         string
 	ImageSHA      string
 	PublicExposed bool
 	ClusterName   string
-	ClusterType   resType.ResourceGroupType
+	ClusterType   grpcType.ResourceGroupType
 	ProviderID    string
 
 	// Container-specific fields only (no duplicates from StoreResourceFlat)
@@ -385,7 +383,6 @@ func extractResources(containersData []ContainerData, taskArnContainerNetworkMap
 
 func createRegionClients(regionName string, cfg aws.Config, cnasLogger zerolog.Logger) (*ecs.Client, *ec2.Client, *elasticloadbalancingv2.Client) {
 	// Create clients for this region
-	//cfg.Region = regionName // todo why setting again the region name , it should be an instance with the region all ready
 	cnasLogger.Info().Msgf("🐳 ECS Crawler: 🔧 Creating AWS clients for region %s...", regionName)
 	ecsClient := ecs.NewFromConfig(cfg)
 	ec2Client := ec2.NewFromConfig(cfg)
@@ -396,36 +393,42 @@ func createRegionClients(regionName string, cfg aws.Config, cnasLogger zerolog.L
 func listRegionClusters(ctx context.Context, client *ecs.Client, cnasLogger zerolog.Logger) ([]*types2.Cluster, error) {
 
 	var allClusters []*types2.Cluster
+	var nextToken *string
+	// Paginate through clusters
+	for {
+		input := &ecs.ListClustersInput{
+			MaxResults: &[]int32{10}[0], // List up to 10 clusters
+			NextToken:  nextToken,
+		}
 
-	input := &ecs.ListClustersInput{
-		MaxResults: &[]int32{10}[0], // List up to 10 clusters
-	}
-
-	clustersList, err := client.ListClusters(ctx, input)
-	if err != nil {
-		cnasLogger.Err(err).Msgf("🐳 ECS Crawler: failed to list ECS clusters")
-		return nil, err
-	}
-
-	// Success - print results
-	for i, clusterArn := range clustersList.ClusterArns {
-		cnasLogger.Info().Msgf("🐳 ECS Crawler:   %d. %s", i+1, clusterArn)
-
-		// Describe each cluster
-		cnasLogger.Info().Msgf("🐳 ECS Crawler:      🔍 Describing cluster details...")
-
-		cluster, err := DescribeCluster(client, clusterArn)
+		clustersList, err := client.ListClusters(ctx, input)
 		if err != nil {
-			cnasLogger.Warn().Msgf("🐳 ECS Crawler:      ❌ Failed to describe cluster %s: %v", clusterArn, err)
-			continue
+			cnasLogger.Err(err).Msgf("🐳 ECS Crawler: failed to list ECS clusters")
+			return nil, err
 		}
 
-		if cluster == nil {
-			cnasLogger.Warn().Msgf("🐳 ECS Crawler:      ⚠️ No cluster data returned")
-			continue
-		}
-		allClusters = append(allClusters, cluster)
+		// Success - print results
+		for i, clusterArn := range clustersList.ClusterArns {
 
+			// Describe each cluster
+			cnasLogger.Info().Msgf("🐳 ECS Crawler:      🔍 Describing cluster details:  %d). clusterArn: %s", i+1, clusterArn)
+
+			cluster, err := describeCluster(client, clusterArn)
+			if err != nil {
+				cnasLogger.Warn().Msgf("🐳 ECS Crawler:      ❌ Failed to describe cluster %s: %v", clusterArn, err)
+				continue
+			}
+
+			if cluster == nil {
+				cnasLogger.Warn().Msgf("🐳 ECS Crawler:      ⚠️ No cluster data returned")
+				continue
+			}
+			allClusters = append(allClusters, cluster)
+		}
+		if clustersList.NextToken == nil {
+			break
+		}
+		nextToken = clustersList.NextToken
 	}
 	return allClusters, nil
 }
@@ -547,6 +550,7 @@ func listContainersInCluster(client *ecs.Client, cluster *types2.Cluster, region
 
 			// Create container data object WITHOUT adding to CSV/JSON yet
 			containerData := createContainerData(cluster, &task, &container, nil, region)
+
 			containersDataList = append(containersDataList, containerData)
 		}
 		cnasLogger.Info().Msgf("🐳 ECS Crawler: \n")
@@ -718,7 +722,7 @@ func analyzeLoadBalancerExposure(ctx context.Context, client *elasticloadbalanci
 	return analysis, fmt.Errorf("Todo Analyzing load balancer exposure... \n")
 }
 
-func DescribeCluster(client *ecs.Client, clusterArn string) (*types2.Cluster, error) {
+func describeCluster(client *ecs.Client, clusterArn string) (*types2.Cluster, error) {
 	resp, err := client.DescribeClusters(context.TODO(), &ecs.DescribeClustersInput{
 		Clusters: []string{clusterArn},
 	})
@@ -829,15 +833,15 @@ func containerToResource(containerData ContainerData) model.FlatResource {
 		ID: uuid.NewString(),
 		StoreResourceFlat: &grpcType.StoreResourceFlat{
 			Name:          containerData.Name,
-			Type:          resType.ResourceType_CONTAINER,
+			Type:          grpcType.ResourceType_CONTAINER,
 			Image:         containerData.Image,
 			ImageSha:      "",
 			Metadata:      nil,
 			PublicExposed: containerData.PublicExposed,
 			Correlation:   nil,
 			ClusterName:   containerData.ClusterName,
-			ClusterType:   resType.ResourceGroupType_ECS,
-			ProviderID:    containerData.ProviderID,
+			ClusterType:   grpcType.ResourceGroupType_ECS,
+			ProviderId:    containerData.ProviderID,
 			Region:        containerData.Region,
 		},
 	}
@@ -987,6 +991,7 @@ func analyzeNetworkExposure(ctx context.Context, ec2Client *ec2.Client, elbv2Cli
 		len(analysis.LoadBalancers) > 0
 	return analysis, nil
 }
+
 func ecsCrawlTimer(cnasLogger zerolog.Logger) func() {
 	start := time.Now()
 	return func() {
