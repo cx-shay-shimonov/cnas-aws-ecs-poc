@@ -439,6 +439,8 @@ func listRegionClusters(
 			return nil, err
 		}
 
+		cnasLogger.Info().Msgf("🐳 ECS Crawler: ECS %d clusters out of %d requested per page", len(clustersList.ClusterArns), *input.MaxResults)
+
 		// Success - print results
 		for i, clusterArn := range clustersList.ClusterArns {
 

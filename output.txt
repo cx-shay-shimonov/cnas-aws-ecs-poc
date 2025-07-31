@@ -1,0 +1,305 @@
+[90m2025-07-31T13:45:12+03:00[0m [32mINF[0m [1mLogger initialized[0m
+📋 Step 1: Loading base SSO credentials for region us-east-1...
+✅ Default credentials working for region us-east-1!
+[90m2025-07-31T13:45:13+03:00[0m [32mINF[0m [1mEC2 Client created successfully for region discovery[0m
+[90m2025-07-31T13:45:13+03:00[0m [32mINF[0m [1mGetting all AWS regions...[0m
+[90m2025-07-31T13:45:13+03:00[0m [32mINF[0m [1mFound AWS regions[0m [36mcount=[0m33 [36mregions=[0m["ap-south-2","ap-south-1","eu-south-1","eu-south-2","me-central-1","il-central-1","ca-central-1","ap-east-2","mx-central-1","eu-central-1","eu-central-2","us-west-1","us-west-2","af-south-1","eu-north-1","eu-west-3","eu-west-2","eu-west-1","ap-northeast-3","ap-northeast-2","me-south-1","ap-northeast-1","sa-east-1","ap-east-1","ca-west-1","ap-southeast-1","ap-southeast-2","ap-southeast-3","ap-southeast-4","us-east-1","ap-southeast-5","us-east-2","ap-southeast-7"]
+[90m2025-07-31T13:45:13+03:00[0m [32mINF[0m [1mFound regions to explore[0m [36mcount=[0m33 [36mregions=[0m["ap-south-2","ap-south-1","eu-south-1","eu-south-2","me-central-1","il-central-1","ca-central-1","ap-east-2","mx-central-1","eu-central-1","eu-central-2","us-west-1","us-west-2","af-south-1","eu-north-1","eu-west-3","eu-west-2","eu-west-1","ap-northeast-3","ap-northeast-2","me-south-1","ap-northeast-1","sa-east-1","ap-east-1","ca-west-1","ap-southeast-1","ap-southeast-2","ap-southeast-3","ap-southeast-4","us-east-1","ap-southeast-5","us-east-2","ap-southeast-7"]
+📋 Step 1: Loading base SSO credentials for region us-east-1...
+✅ Default credentials working for region us-east-1!
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ca-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-southeast-7...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-southeast-7...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region eu-south-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region eu-south-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region eu-south-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region me-south-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region me-south-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-south-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-southeast-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-northeast-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-southeast-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-east-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-east-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region mx-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region mx-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region us-west-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region us-west-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region eu-central-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region eu-central-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region af-south-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region eu-west-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region eu-west-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-south-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-northeast-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region eu-south-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-southeast-4...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-southeast-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-southeast-3...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-east-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region me-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-southeast-5...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region sa-east-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ca-west-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region us-east-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region us-east-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ca-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region il-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region eu-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-northeast-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region eu-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region eu-west-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region eu-west-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region us-west-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region us-west-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-south-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region ap-northeast-3...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-northeast-3...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-south-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region eu-north-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-northeast-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region eu-north-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔧 Creating AWS clients for region eu-west-3...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region eu-west-3...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-southeast-4...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region af-south-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-southeast-3...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-east-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-southeast-5...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region me-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region sa-east-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region us-east-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ap-southeast-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region us-east-2...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region ca-west-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🐳 Listing containers in region il-central-1...[0m
+[90m2025-07-31T13:45:14+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 7f957546-b218-4209-a10b-fcdc47bf1c3a, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:14+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: il-central-1.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 7f957546-b218-4209-a10b-fcdc47bf1c3a, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:14+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 07d068e5-0ea0-41cd-aa2b-f120bb35ef91, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region il-central-1 took 417.349792ms to complete![0m
+[90m2025-07-31T13:45:14+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: eu-south-1.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 07d068e5-0ea0-41cd-aa2b-f120bb35ef91, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region eu-south-1 took 418.187875ms to complete![0m
+[90m2025-07-31T13:45:14+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region il-central-1: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 7f957546-b218-4209-a10b-fcdc47bf1c3a, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:14+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region eu-south-1: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 07d068e5-0ea0-41cd-aa2b-f120bb35ef91, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region eu-west-3[0m
+[90m2025-07-31T13:45:14+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region eu-west-3[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region eu-west-3 took 423.938917ms to complete![0m
+[90m2025-07-31T13:45:14+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region eu-west-3: no containers found in region eu-west-3[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 1 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:14+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      🔍 Describing cluster details:  1). clusterArn: arn:aws:ecs:eu-west-2:822112283600:cluster/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 5a09aa54-025f-4fcf-90bb-8300a78b21af, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: eu-south-2.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 5a09aa54-025f-4fcf-90bb-8300a78b21af, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region eu-south-2 took 488.2925ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region eu-south-2: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 5a09aa54-025f-4fcf-90bb-8300a78b21af, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region eu-central-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region eu-central-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region eu-central-1 took 499.655292ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region eu-central-1: no containers found in region eu-central-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region eu-west-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region eu-west-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region eu-west-1 took 511.462167ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region eu-west-1: no containers found in region eu-west-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region eu-north-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region eu-north-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region eu-north-1 took 537.419375ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region eu-north-1: no containers found in region eu-north-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔍 Processing cluster: demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      🔍 Listing containersDataList in cluster: demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      📊 Found 1 running tasks[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:        📋 Task 1: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:           Status: RUNNING[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:           Desired Status: RUNNING[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:           Task Definition: arn:aws:ecs:eu-west-2:822112283600:task-definition/demo-php-eu-demo-ecs-php-demo-service:1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:           📦 Containers (2):[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:             1. Container Name: ecs-service-connect-o3DQRY[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Last Status: RUNNING[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Task ARN: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Network Interfaces:[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                  - Private IP: 10.0.1.145
+[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:             2. Container Name: php-demo-service[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Image: 822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Last Status: RUNNING[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Runtime ID: f45adfe80f374828b17c06f80a0ad6ca-1095789471[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Task ARN: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Network Interfaces:[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                  - Private IP: 10.0.1.145
+[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 
+[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      ✅ Found 2 containersDataList across 1 tasks in cluster demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 2 containers in region eu-west-2[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔍 Analyzing network exposure for region eu-west-2...[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔍 Analyzing network exposure for task: arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 40c6855a-ff83-43c9-9c44-d78c817c4f7c, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: me-central-1.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 40c6855a-ff83-43c9-9c44-d78c817c4f7c, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region me-central-1 took 818.867791ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region me-central-1: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 40c6855a-ff83-43c9-9c44-d78c817c4f7c, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region ca-central-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region ca-central-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ca-central-1 took 825.665917ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ca-central-1: no containers found in region ca-central-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 2 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      🔍 Describing cluster details:  1). clusterArn: arn:aws:ecs:us-east-1:822112283600:cluster/AST-83961-Fargate[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region me-south-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region me-south-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region me-south-1 took 848.025166ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region me-south-1: no containers found in region me-south-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region ap-south-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region ap-south-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-south-1 took 923.034459ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-south-1: no containers found in region ap-south-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 74f3faf5-66c8-402d-a856-8e2a5bc44369, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: ap-south-2.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 74f3faf5-66c8-402d-a856-8e2a5bc44369, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-south-2 took 945.517542ms to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-south-2: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 74f3faf5-66c8-402d-a856-8e2a5bc44369, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      🔍 Describing cluster details:  2). clusterArn: arn:aws:ecs:us-east-1:822112283600:cluster/bb-cluster-test[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: ac75646d-48c4-468a-8d12-43b0c8274d06, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: mx-central-1.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: ac75646d-48c4-468a-8d12-43b0c8274d06, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region mx-central-1 took 1.04684325s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region mx-central-1: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: ac75646d-48c4-468a-8d12-43b0c8274d06, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: a8a41310-e337-49e1-9350-817a4b9748cf, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: ap-southeast-5.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: a8a41310-e337-49e1-9350-817a4b9748cf, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-southeast-5 took 1.061381708s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-southeast-5: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: a8a41310-e337-49e1-9350-817a4b9748cf, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: a4b90efc-1ee8-4a3d-a188-e015f6341b1c, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: ap-southeast-7.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: a4b90efc-1ee8-4a3d-a188-e015f6341b1c, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-southeast-7 took 1.070761792s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-southeast-7: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: a4b90efc-1ee8-4a3d-a188-e015f6341b1c, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 71ab0154-b369-48b4-9b70-92d6c26b031c, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: ap-southeast-3.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 71ab0154-b369-48b4-9b70-92d6c26b031c, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-southeast-3 took 1.070540208s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-southeast-3: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 71ab0154-b369-48b4-9b70-92d6c26b031c, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔍 Processing cluster: AST-83961-Fargate[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      🔍 Listing containersDataList in cluster: AST-83961-Fargate[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 16e80f41-f4b6-4e10-bc73-0eed3e90cad2, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: ap-east-1.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 16e80f41-f4b6-4e10-bc73-0eed3e90cad2, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-east-1 took 1.194068125s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-east-1: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 16e80f41-f4b6-4e10-bc73-0eed3e90cad2, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region sa-east-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region sa-east-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region sa-east-1 took 1.198124875s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region sa-east-1: no containers found in region sa-east-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region us-west-2[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region us-west-2[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region us-west-2 took 1.203998958s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region us-west-2: no containers found in region us-west-2[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 1feb1e40-f8ad-4258-963a-d89f52e4b892, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: eu-central-2.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 1feb1e40-f8ad-4258-963a-d89f52e4b892, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region eu-central-2 took 1.232927167s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region eu-central-2: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: 1feb1e40-f8ad-4258-963a-d89f52e4b892, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region us-west-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region us-west-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region us-west-1 took 1.269386334s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region us-west-1: no containers found in region us-west-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      📊 Found 1 running tasks[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region ap-northeast-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region ap-northeast-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-northeast-1 took 1.338706625s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-northeast-1: no containers found in region ap-northeast-1[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region ap-northeast-3[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region ap-northeast-3[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-northeast-3 took 1.407092s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-northeast-3: no containers found in region ap-northeast-3[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region ap-southeast-2[0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region ap-southeast-2[0m
+[90m2025-07-31T13:45:15+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-southeast-2 took 1.430205417s to complete![0m
+[90m2025-07-31T13:45:15+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-southeast-2: no containers found in region ap-southeast-2[0m
+[90m2025-07-31T13:45:16+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: d91118c8-92fe-4dfe-a601-cc5892f57e75, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:16+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: ap-east-2.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: d91118c8-92fe-4dfe-a601-cc5892f57e75, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-east-2 took 1.489816875s to complete![0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-east-2: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: d91118c8-92fe-4dfe-a601-cc5892f57e75, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:        📋 Task 1: arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:           Status: RUNNING[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:           Desired Status: RUNNING[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:           Task Definition: arn:aws:ecs:us-east-1:822112283600:task-definition/nginx-task:1[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:           📦 Containers (2):[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:             1. Container Name: nginx-container[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Image: nginx:latest[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Last Status: RUNNING[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Runtime ID: 0ca144eb9825407da40e2ee9f73ccf32-4135852389[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Task ARN: arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Network Interfaces:[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                  - Private IP: 172.31.49.133
+[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:             2. Container Name: ecs-service-connect-60JfD[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Last Status: RUNNING[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Task ARN: arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                Network Interfaces:[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:                  - Private IP: 172.31.49.133
+[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 
+[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      ✅ Found 2 containersDataList across 1 tasks in cluster AST-83961-Fargate[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔍 Processing cluster: bb-cluster-test[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      🔍 Listing containersDataList in cluster: bb-cluster-test[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region ap-northeast-2[0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region ap-northeast-2[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-northeast-2 took 1.529836208s to complete![0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-northeast-2: no containers found in region ap-northeast-2[0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: ⚠️ Load balancer analysis not fully implemented - returning empty results
+[0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: ⚠️ Warning: Failed to analyze load balancer exposure: Todo Analyzing load balancer exposure... 
+
+[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📄 MapAWSToFlatResource Results Summary: Generated 2 flat resources[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Successfully analyzed 2 containers in region eu-west-2[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region eu-west-2 took 1.567244375s to complete![0m
+[90m2025-07-31T13:45:16+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: cfd0f743-81eb-4b4a-ab77-b5308d54ab51, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:16+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: ap-southeast-4.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: cfd0f743-81eb-4b4a-ab77-b5308d54ab51, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-southeast-4 took 1.587621083s to complete![0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-southeast-4: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: cfd0f743-81eb-4b4a-ab77-b5308d54ab51, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 1 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      🔍 Describing cluster details:  1). clusterArn: arn:aws:ecs:us-east-2:822112283600:cluster/AST-83961-Fargate[0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler:      📝 No running tasks found in cluster: bb-cluster-test[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 2 containers in region us-east-1[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔍 Analyzing network exposure for region us-east-1...[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔍 Analyzing network exposure for task: arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32[0m
+[90m2025-07-31T13:45:16+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: bf26892a-78c1-4070-a0dd-866892fe829a, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:16+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: ca-west-1.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: bf26892a-78c1-4070-a0dd-866892fe829a, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ca-west-1 took 1.757720666s to complete![0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ca-west-1: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: bf26892a-78c1-4070-a0dd-866892fe829a, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:16+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list ECS clusters[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: f9da4dfc-efb8-486a-8c42-e1e9e79460f8, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:16+03:00[0m [31mERR[0m [1m🐳 ECS Crawler: failed to list client in region: af-south-1.[0m [36merror=[0m[31m[1m"operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: f9da4dfc-efb8-486a-8c42-e1e9e79460f8, api error UnrecognizedClientException: The security token included in the request is invalid"[0m[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region af-south-1 took 1.794725792s to complete![0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region af-south-1: operation error ECS: ListClusters, https response error StatusCode: 400, RequestID: f9da4dfc-efb8-486a-8c42-e1e9e79460f8, api error UnrecognizedClientException: The security token included in the request is invalid[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 🔍 Processing cluster: AST-83961-Fargate[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler:      🔍 Listing containersDataList in cluster: AST-83961-Fargate[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ECS 0 clusters out of 10 requested per page[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region ap-southeast-1[0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region ap-southeast-1[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region ap-southeast-1 took 1.814997208s to complete![0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region ap-southeast-1: no containers found in region ap-southeast-1[0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler:      📝 No running tasks found in cluster: AST-83961-Fargate[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📊 Found 0 containers in region us-east-2[0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: 📝 No containers found in region us-east-2[0m
+[90m2025-07-31T13:45:16+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region us-east-2 took 1.983909166s to complete![0m
+[90m2025-07-31T13:45:16+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: Failed to process region us-east-2: no containers found in region us-east-2[0m
+[90m2025-07-31T13:45:17+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: ⚠️ Load balancer analysis not fully implemented - returning empty results
+[0m
+[90m2025-07-31T13:45:17+03:00[0m [33mWRN[0m [1m🐳 ECS Crawler: ⚠️ Warning: Failed to analyze load balancer exposure: Todo Analyzing load balancer exposure... 
+
+[0m
+[90m2025-07-31T13:45:17+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: 📄 MapAWSToFlatResource Results Summary: Generated 2 flat resources[0m
+[90m2025-07-31T13:45:17+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Successfully analyzed 2 containers in region us-east-1[0m
+[90m2025-07-31T13:45:17+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl region us-east-1 took 3.023034s to complete![0m
+[90m2025-07-31T13:45:17+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: Completed processing 33 regions, found 4 total resources[0m
+[90m2025-07-31T13:45:17+03:00[0m [32mINF[0m [1m🐳 ECS Crawler: ✅ Crawl took 3.025473333s to complete![0m
+✅ Successfully saved 4 container records to containers.csv
+✅ Successfully saved 4 container records to containers.json
+[90m2025-07-31T13:45:17+03:00[0m [32mINF[0m [1mResults saved to containers.csv successfully[0m
+[90m2025-07-31T13:45:17+03:00[0m [32mINF[0m [1mResults saved to containers.json successfully[0m
