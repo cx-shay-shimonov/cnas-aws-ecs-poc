@@ -439,7 +439,11 @@ func listRegionClusters(
 			return nil, err
 		}
 
-		cnasLogger.Info().Msgf("🐳 ECS Crawler: ECS %d clusters out of %d requested per page", len(clustersList.ClusterArns), *input.MaxResults)
+		cnasLogger.Info().Msgf(
+			"🐳 ECS Crawler: ECS %d clusters out of %d requested per page",
+			len(clustersList.ClusterArns),
+			*input.MaxResults,
+		)
 
 		// Success - print results
 		for i, clusterArn := range clustersList.ClusterArns {
@@ -827,15 +831,33 @@ func describeCluster(ctx context.Context, client *ecs.Client, clusterArn string)
 }
 
 func listTasks(ctx context.Context, client *ecs.Client, clusterArn string) ([]string, error) {
-	output, err := client.ListTasks(ctx, &ecs.ListTasksInput{
-		Cluster:       &clusterArn,
-		DesiredStatus: types2.DesiredStatusRunning, // Only running tasks
-	})
-	if err != nil {
-		return nil, err
+	var allTaskArns []string
+	var nextToken *string
+
+	// Paginate through tasks
+	for {
+		input := &ecs.ListTasksInput{
+			Cluster:       &clusterArn,
+			DesiredStatus: types2.DesiredStatusRunning, // Only running tasks
+			MaxResults:    aws.Int32(100),              // AWS maximum
+			NextToken:     nextToken,
+		}
+
+		output, err := client.ListTasks(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+
+		allTaskArns = append(allTaskArns, output.TaskArns...)
+
+		// Check if there are more results
+		if output.NextToken == nil {
+			break
+		}
+		nextToken = output.NextToken
 	}
 
-	return output.TaskArns, nil
+	return allTaskArns, nil
 }
 
 func describeTasks(
@@ -848,15 +870,29 @@ func describeTasks(
 		return nil, nil
 	}
 
-	output, err := client.DescribeTasks(ctx, &ecs.DescribeTasksInput{
-		Cluster: &clusterArn,
-		Tasks:   taskArnList,
-	})
-	if err != nil {
-		return nil, err
+	var allTasks []types2.Task
+	const batchSize = 100 // AWS limit for DescribeTasks
+
+	// Process tasks in batches of 100
+	for i := 0; i < len(taskArnList); i += batchSize {
+		end := i + batchSize
+		if end > len(taskArnList) {
+			end = len(taskArnList)
+		}
+
+		batch := taskArnList[i:end]
+		output, err := client.DescribeTasks(ctx, &ecs.DescribeTasksInput{
+			Cluster: &clusterArn,
+			Tasks:   batch,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		allTasks = append(allTasks, output.Tasks...)
 	}
 
-	return output.Tasks, nil
+	return allTasks, nil
 }
 
 // createContainerData creates a ContainerData object from cluster, task, and container information
