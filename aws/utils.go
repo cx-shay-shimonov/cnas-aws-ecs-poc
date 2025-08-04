@@ -31,7 +31,7 @@ func ExportCSV(resources []model.FlatResource) bool {
 	// Write header
 	header := []string{
 		"ID", "Name", "Type", "Image", "ImageSha", "PublicExposed",
-		"Correlation", "ClusterName", "ClusterType", "ProviderID", "Region",
+		"ClusterName", "ClusterType", "ProviderID", "Region",
 	}
 	if err := writer.Write(header); err != nil {
 		fmt.Printf("❌ Failed to write CSV header: %v\n", err)
