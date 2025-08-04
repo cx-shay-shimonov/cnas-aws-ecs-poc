@@ -28,7 +28,6 @@ type ContainerData struct {
 	PublicExposed bool
 	ClusterName   string
 	ClusterType   grpcType.ResourceGroupType
-	ProviderID    string
 
 	// Container-specific fields only (no duplicates from StoreResourceFlat)
 	Status        string
@@ -57,7 +56,11 @@ type NetworkExposureAnalysis struct {
 	NetworkInterfaces []string
 }
 
-// ENIAnalysis contains ENI-specific analysis results
+const maxClustersPerPage = 10
+const maxTasksPerPage = 100
+const taskDescriptionBatchSize = 100 // AWS limit for DescribeTasks
+
+// ENIAnalysis contains ENI-specific analysis results.
 type ENIAnalysis struct {
 	HasPublicIP      bool
 	IsInPublicSubnet bool
@@ -429,7 +432,7 @@ func listRegionClusters(
 	// Paginate through clusters
 	for {
 		input := &ecs.ListClustersInput{
-			MaxResults: &[]int32{10}[0], // List up to 10 clusters
+			MaxResults: aws.Int32(maxClustersPerPage), // List up to 10 clusters
 			NextToken:  nextToken,
 		}
 
@@ -839,7 +842,7 @@ func listTasks(ctx context.Context, client *ecs.Client, clusterArn string) ([]st
 		input := &ecs.ListTasksInput{
 			Cluster:       &clusterArn,
 			DesiredStatus: types2.DesiredStatusRunning, // Only running tasks
-			MaxResults:    aws.Int32(100),              // AWS maximum
+			MaxResults:    aws.Int32(maxTasksPerPage),  // AWS maximum
 			NextToken:     nextToken,
 		}
 
@@ -871,11 +874,9 @@ func describeTasks(
 	}
 
 	var allTasks []types2.Task
-	const batchSize = 100 // AWS limit for DescribeTasks
-
-	// Process tasks in batches of 100
-	for i := 0; i < len(taskArnList); i += batchSize {
-		end := i + batchSize
+	// Process tasks in batches of taskDescriptionBatchSize
+	for i := 0; i < len(taskArnList); i += taskDescriptionBatchSize {
+		end := i + taskDescriptionBatchSize
 		if end > len(taskArnList) {
 			end = len(taskArnList)
 		}
@@ -985,7 +986,7 @@ func containerToResource(containerData ContainerData) model.FlatResource {
 			Correlation:   nil,
 			ClusterName:   containerData.ClusterName,
 			ClusterType:   grpcType.ResourceGroupType_ECS,
-			ProviderId:    containerData.ProviderID,
+			ProviderId:    containerData.TaskARN,
 			Region:        containerData.Region,
 		},
 	}

@@ -30,7 +30,7 @@ func ExportCSV(resources []model.FlatResource) bool {
 
 	// Write header
 	header := []string{
-		"ID", "Name", "Type", "Image", "ImageSha", "PublicExposed",
+		"ID", "Container", "Type", "Image", "PublicExposed",
 		"ClusterName", "ClusterType", "ProviderID", "Region",
 	}
 	if err := writer.Write(header); err != nil {
@@ -48,7 +48,6 @@ func ExportCSV(resources []model.FlatResource) bool {
 			resource.StoreResourceFlat.Name,
 			string(resource.StoreResourceFlat.Type),
 			resource.StoreResourceFlat.Image,
-			resource.StoreResourceFlat.ImageSha,
 			fmt.Sprintf("%t", resource.StoreResourceFlat.PublicExposed),
 			resource.StoreResourceFlat.ClusterName,
 			string(resource.StoreResourceFlat.ClusterType),
