@@ -21,18 +21,13 @@ import (
 
 type ContainerData struct {
 	Name          string
-	Type          grpcType.ResourceType
 	Image         string
 	ImageSHA      string
 	PublicExposed bool
 	ClusterName   string
-	ClusterType   grpcType.ResourceGroupType
 
 	// Container-specific fields only (no duplicates from StoreResourceFlat)
-	Status        string
-	RuntimeID     string
 	TaskARN       string
-	TaskStatus    string
 	HostPort      int
 	ContainerPort int
 	Protocol      string
@@ -687,10 +682,7 @@ func createContainerData(
 		Name:        aws.ToString(container.Name),
 		Image:       aws.ToString(container.Image),
 		ImageSHA:    aws.ToString(container.ImageDigest),
-		Status:      aws.ToString(container.LastStatus),
-		RuntimeID:   aws.ToString(container.RuntimeId),
 		TaskARN:     aws.ToString(task.TaskArn),
-		TaskStatus:  aws.ToString(task.LastStatus),
 		Region:      region,
 	}
 
