@@ -1,6 +1,6 @@
 [
   {
-    "ID": "de34c0b7-fa70-4acd-bdc2-01b63addb00b",
+    "ID": "862a1528-9fc3-4116-b9b5-80795ee92235",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-o3DQRY",
       "Type": 0,
@@ -16,12 +16,12 @@
     }
   },
   {
-    "ID": "aab07e9e-5bc9-4467-98f1-710140627475",
+    "ID": "e6e0356d-880e-4c9b-934b-3b83551a4e65",
     "StoreResourceFlat": {
       "Name": "php-demo-service",
       "Type": 0,
       "Image": "822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
-      "ImageSha": "",
+      "ImageSha": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
       "Metadata": null,
       "PublicExposed": true,
       "Correlation": null,
@@ -32,12 +32,12 @@
     }
   },
   {
-    "ID": "c74c614e-be45-4e13-a40d-c084fa61def1",
+    "ID": "ee02adfb-89ab-4aaf-8250-63fb6d1a565c",
     "StoreResourceFlat": {
       "Name": "nginx-container",
       "Type": 0,
       "Image": "nginx:latest",
-      "ImageSha": "",
+      "ImageSha": "sha256:91734281c0ebfc6f1aea979cffeed5079cfe786228a71cc6f1f46a228cde6e34",
       "Metadata": null,
       "PublicExposed": true,
       "Correlation": null,
@@ -48,7 +48,7 @@
     }
   },
   {
-    "ID": "e5491e4e-a417-481e-8092-09508d47dfb8",
+    "ID": "2613f6ec-7353-4e0a-a585-f917925024fe",
     "StoreResourceFlat": {
       "Name": "ecs-service-connect-60JfD",
       "Type": 0,
