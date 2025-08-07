@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"aws-ecs-project/model"
 )
 
-func ExportCSV(resources []model.FlatResource) bool {
+func ExportCSV(containers []ContainerData) bool {
 	// Create CSV file
 	csvFile, err := os.Create("containers.csv")
 	if err != nil {
@@ -30,8 +28,8 @@ func ExportCSV(resources []model.FlatResource) bool {
 
 	// Write header
 	header := []string{
-		"ID", "Container", "Type", "Image", "image Sha", "PublicExposed",
-		"ClusterName", "ClusterType", "ProviderID", "Region",
+		"Container", "Image", "image Sha", "PublicExposed",
+		"ClusterName", "ProviderID", "Region",
 	}
 	if err := writer.Write(header); err != nil {
 		fmt.Printf("❌ Failed to write CSV header: %v\n", err)
@@ -39,21 +37,16 @@ func ExportCSV(resources []model.FlatResource) bool {
 	}
 
 	// Write data rows
-	for _, resource := range resources {
-		if resource.StoreResourceFlat == nil {
-			continue
-		}
+	for _, container := range containers {
+
 		record := []string{
-			resource.ID,
-			resource.StoreResourceFlat.Name,
-			string(resource.StoreResourceFlat.Type),
-			resource.StoreResourceFlat.Image,
-			resource.StoreResourceFlat.ImageSha,
-			fmt.Sprintf("%t", resource.StoreResourceFlat.PublicExposed),
-			resource.StoreResourceFlat.ClusterName,
-			string(resource.StoreResourceFlat.ClusterType),
-			resource.StoreResourceFlat.ProviderId,
-			resource.StoreResourceFlat.Region,
+			container.Name,
+			container.Image,
+			container.ImageSHA,
+			fmt.Sprintf("%t", container.PublicExposed),
+			container.ClusterName,
+			container.TaskARN,
+			container.Region,
 		}
 		if err := writer.Write(record); err != nil {
 			fmt.Printf("❌ Failed to write CSV record: %v\n", err)
@@ -61,11 +54,11 @@ func ExportCSV(resources []model.FlatResource) bool {
 		}
 	}
 
-	fmt.Printf("✅ Successfully saved %d container records to containers.csv\n", len(resources))
+	fmt.Printf("✅ Successfully saved %d container records to containers.csv\n", len(containers))
 	return true
 }
 
-func ExportJSON(resources []model.FlatResource) bool {
+func ExportJSON(containers []ContainerData) bool {
 	// Create JSON file
 	jsonFile, err := os.Create("containers.json")
 	if err != nil {
@@ -85,11 +78,11 @@ func ExportJSON(resources []model.FlatResource) bool {
 	encoder.SetIndent("", "  ") // Pretty print
 
 	// Write JSON data
-	if err := encoder.Encode(resources); err != nil {
+	if err := encoder.Encode(containers); err != nil {
 		fmt.Printf("❌ Failed to write JSON data: %v\n", err)
 		return false
 	}
 
-	fmt.Printf("✅ Successfully saved %d container records to containers.json\n", len(resources))
+	fmt.Printf("✅ Successfully saved %d container records to containers.json\n", len(containers))
 	return true
 }

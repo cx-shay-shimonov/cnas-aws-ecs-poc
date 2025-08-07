@@ -7,16 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"aws-ecs-project/model"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	types2 "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	//"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
-	"github.com/google/uuid"
-
-	"aws-ecs-project/grpcType"
 )
 
 type ContainerData struct {
@@ -26,7 +21,6 @@ type ContainerData struct {
 	PublicExposed bool
 	ClusterName   string
 
-	// Container-specific fields only (no duplicates from StoreResourceFlat)
 	TaskARN       string
 	HostPort      int
 	ContainerPort int
@@ -69,14 +63,14 @@ func EcsCrawl(
 	ctx context.Context,
 	cfg *aws.Config,
 	cnasLogger zerolog.Logger,
-) []model.FlatResource {
+) []ContainerData {
 	defer ecsCrawlTimer(cnasLogger)()
 
 	// Create channels for coordination
 	type regionResult struct {
-		resources []model.FlatResource
-		region    string
-		err       error
+		containerDataList []ContainerData
+		region            string
+		err               error
 	}
 
 	resultChan := make(chan regionResult, len(regions))
@@ -88,41 +82,41 @@ func EcsCrawl(
 			regionCfg := cfg.Copy()
 			regionCfg.Region = regionName
 
-			regionResources, err := crawlRegionResources(regionName, ctx, regionCfg, cnasLogger)
+			regionContainersDataList, err := crawlRegionContainers(regionName, ctx, regionCfg, cnasLogger)
 			if err != nil {
 				cnasLogger.Warn().Msgf("🐳 ECS Crawler: Failed to process region %s: %v", regionName, err)
 				resultChan <- regionResult{nil, regionName, err}
 				return
 			}
 
-			resultChan <- regionResult{regionResources, regionName, nil}
+			resultChan <- regionResult{regionContainersDataList, regionName, nil}
 		}(region)
 	}
 
 	// Collect results
-	allResources := make([]model.FlatResource, 0)
+	allContainers := make([]ContainerData, 0)
 	for i := 0; i < len(regions); i++ {
 		result := <-resultChan
 		if result.err == nil {
-			allResources = append(allResources, result.resources...)
+			allContainers = append(allContainers, result.containerDataList...)
 		}
 	}
 
 	cnasLogger.Info().Msgf(
-		"🐳 ECS Crawler: Completed processing %d regions, found %d total resources",
+		"🐳 ECS Crawler: Completed processing %d regions, found %d total containerDataList",
 		len(regions),
-		len(allResources),
+		len(allContainers),
 	)
 
-	return allResources
+	return allContainers
 }
 
-func crawlRegionResources(
+func crawlRegionContainers(
 	regionName string,
 	ctx context.Context,
 	cfg aws.Config,
 	cnasLogger zerolog.Logger,
-) ([]model.FlatResource, error) {
+) ([]ContainerData, error) {
 
 	defer ecsCrawlRegionTimer(cnasLogger, regionName)()
 
@@ -151,7 +145,7 @@ func crawlRegionResources(
 	)
 	totalContainers += len(regionContainersDataList)
 
-	// Perform network analysis and generate flat resources
+	// Perform network analysis and generate containerDataList
 	if len(regionContainersDataList) == 0 {
 		cnasLogger.Warn().Msgf("🐳 ECS Crawler: 📝 No containers found in region %s", regionName)
 		return nil, fmt.Errorf("no containers found in region %s", regionName)
@@ -170,41 +164,38 @@ func crawlRegionResources(
 		cnasLogger,
 	)
 
-	regionResourcesList := extractResources(regionContainersDataList, taskArnContainerNetworkMap, cnasLogger)
+	regionContainersList := extractContainers(regionContainersDataList, taskArnContainerNetworkMap, cnasLogger)
 
 	cnasLogger.Info().Msgf(
 		"🐳 ECS Crawler: ✅ Successfully analyzed %d containers in region %s",
-		len(regionResourcesList),
+		len(regionContainersList),
 		regionName,
 	)
 
-	return regionResourcesList, nil
+	return regionContainersList, nil
 }
 
-func extractResources(
+func extractContainers(
 	containersData []ContainerData,
 	taskArnContainerNetworkMap map[string]*NetworkExposureAnalysis,
 	cnasLogger zerolog.Logger,
-) []model.FlatResource {
-	allResourcesList := make([]model.FlatResource, 0, len(containersData))
-	// Map each containerData to FlatResourceResult with enhanced network data
+) []ContainerData {
+	allContainersList := make([]ContainerData, 0, len(containersData))
 	for _, containerData := range containersData {
 		// Get network analysis for this containerData's task
 		containerNetworkAnalysis := taskArnContainerNetworkMap[containerData.TaskARN]
 
-		setContainerNetworkPubliclyExposed(&containerData, containerNetworkAnalysis)
+		containerData.PublicExposed = computeContainerNetworkPubliclyExposed(&containerData, containerNetworkAnalysis)
 
-		resourceFlatContainer := containerToResource(containerData)
-
-		allResourcesList = append(allResourcesList, resourceFlatContainer)
+		allContainersList = append(allContainersList, containerData)
 	}
 
 	cnasLogger.Info().Msgf(
-		"🐳 ECS Crawler: 📄 MapAWSToFlatResource Results Summary: Generated %d flat resources",
-		len(allResourcesList),
+		"🐳 ECS Crawler: 📄 Results Summary: Generated %d containers data list",
+		len(allContainersList),
 	)
 
-	return allResourcesList
+	return allContainersList
 }
 
 func createRegionClients(
@@ -740,33 +731,10 @@ func getTaskDetails(
 	return &resp.Tasks[0], nil
 }
 
-func containerToResource(containerData ContainerData) model.FlatResource {
-
-	// Create result with UUID - use the embedded StoreResourceFlat directly
-	result := model.FlatResource{
-		ID: uuid.NewString(),
-		StoreResourceFlat: &grpcType.StoreResourceFlat{
-			Name:          containerData.Name,
-			Type:          grpcType.ResourceType_CONTAINER,
-			Image:         containerData.Image,
-			ImageSha:      containerData.ImageSHA,
-			Metadata:      nil,
-			PublicExposed: containerData.PublicExposed,
-			Correlation:   nil,
-			ClusterName:   containerData.ClusterName,
-			ClusterType:   grpcType.ResourceGroupType_ECS,
-			ProviderId:    containerData.TaskARN,
-			Region:        containerData.Region,
-		},
-	}
-
-	return result
-}
-
-func setContainerNetworkPubliclyExposed(
+func computeContainerNetworkPubliclyExposed(
 	containerData *ContainerData,
 	containerNetworkAnalysis *NetworkExposureAnalysis,
-) {
+) bool {
 	// Enhanced public exposure determination
 	var publicExposed bool
 	if containerNetworkAnalysis != nil {
@@ -776,7 +744,7 @@ func setContainerNetworkPubliclyExposed(
 		publicExposed = containerData.HostPort > 0
 	}
 
-	containerData.PublicExposed = publicExposed
+	return publicExposed
 }
 
 func createTaskArnContainerNetworkMap(
@@ -913,15 +881,8 @@ func analyzeNetworkExposure(
 	//	analysis.ExposureReasons = append(analysis.ExposureReasons, "Associated with load balancer")
 	//}
 
-	// todo improve this logic , one condition is enough
 	// Determine overall exposure
-	// Determine overall exposure - a container is publicly exposed if it meets any of these conditions:
-	// 1. Has a public IP address
-	// 2. Is in a public subnet AND has open ports that allow external access
-	// 3. Is associated with a public load balancer
-	analysis.IsPubliclyExposed = analysis.HasPublicIP ||
-		(analysis.IsInPublicSubnet && len(analysis.OpenPorts) > 0) ||
-		len(analysis.LoadBalancers) > 0
+	analysis.IsPubliclyExposed = analysis.HasPublicIP || analysis.IsInPublicSubnet || len(analysis.LoadBalancers) > 0
 
 	return analysis, nil
 }

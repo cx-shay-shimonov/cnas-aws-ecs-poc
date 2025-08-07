@@ -1,66 +1,54 @@
 [
   {
-    "ID": "51a0547c-fb9f-45ad-95c9-233c2587b06c",
-    "StoreResourceFlat": {
-      "Name": "ecs-service-connect-o3DQRY",
-      "Type": 0,
-      "Image": "",
-      "ImageSha": "",
-      "Metadata": null,
-      "PublicExposed": true,
-      "Correlation": null,
-      "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
-      "ClusterType": "ECS",
-      "ProviderId": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca",
-      "Region": "eu-west-2"
-    }
+    "Name": "ecs-service-connect-o3DQRY",
+    "Image": "",
+    "ImageSHA": "",
+    "PublicExposed": true,
+    "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
+    "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca",
+    "HostPort": 0,
+    "ContainerPort": 0,
+    "Protocol": "",
+    "PrivateIP": "10.0.1.145",
+    "Region": "eu-west-2"
   },
   {
-    "ID": "4a139ab0-b967-44f8-a967-8a003013ac3c",
-    "StoreResourceFlat": {
-      "Name": "php-demo-service",
-      "Type": 0,
-      "Image": "822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
-      "ImageSha": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
-      "Metadata": null,
-      "PublicExposed": true,
-      "Correlation": null,
-      "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
-      "ClusterType": "ECS",
-      "ProviderId": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca",
-      "Region": "eu-west-2"
-    }
+    "Name": "php-demo-service",
+    "Image": "822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
+    "ImageSHA": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
+    "PublicExposed": true,
+    "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
+    "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca",
+    "HostPort": 0,
+    "ContainerPort": 0,
+    "Protocol": "",
+    "PrivateIP": "10.0.1.145",
+    "Region": "eu-west-2"
   },
   {
-    "ID": "f4cc7562-2285-4712-9746-46f7bd7a8ae3",
-    "StoreResourceFlat": {
-      "Name": "nginx-container",
-      "Type": 0,
-      "Image": "nginx:latest",
-      "ImageSha": "sha256:91734281c0ebfc6f1aea979cffeed5079cfe786228a71cc6f1f46a228cde6e34",
-      "Metadata": null,
-      "PublicExposed": true,
-      "Correlation": null,
-      "ClusterName": "AST-83961-Fargate",
-      "ClusterType": "ECS",
-      "ProviderId": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
-      "Region": "us-east-1"
-    }
+    "Name": "nginx-container",
+    "Image": "nginx:latest",
+    "ImageSHA": "sha256:91734281c0ebfc6f1aea979cffeed5079cfe786228a71cc6f1f46a228cde6e34",
+    "PublicExposed": true,
+    "ClusterName": "AST-83961-Fargate",
+    "TaskARN": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
+    "HostPort": 0,
+    "ContainerPort": 0,
+    "Protocol": "",
+    "PrivateIP": "172.31.49.133",
+    "Region": "us-east-1"
   },
   {
-    "ID": "e359b5b3-3bdf-42b6-b562-1884eaf5beef",
-    "StoreResourceFlat": {
-      "Name": "ecs-service-connect-60JfD",
-      "Type": 0,
-      "Image": "",
-      "ImageSha": "",
-      "Metadata": null,
-      "PublicExposed": true,
-      "Correlation": null,
-      "ClusterName": "AST-83961-Fargate",
-      "ClusterType": "ECS",
-      "ProviderId": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
-      "Region": "us-east-1"
-    }
+    "Name": "ecs-service-connect-60JfD",
+    "Image": "",
+    "ImageSHA": "",
+    "PublicExposed": true,
+    "ClusterName": "AST-83961-Fargate",
+    "TaskARN": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
+    "HostPort": 0,
+    "ContainerPort": 0,
+    "Protocol": "",
+    "PrivateIP": "172.31.49.133",
+    "Region": "us-east-1"
   }
 ]
