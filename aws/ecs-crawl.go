@@ -208,7 +208,7 @@ func createRegionClients(
 	ecsClient = ecs.NewFromConfig(cfg)
 	ec2Client = ec2.NewFromConfig(cfg)
 
-	//lint:ignore commentedOutCode This line is intentionally left for future use
+	//nolint:gocritic // Needed for future ELB support
 	// elbClient = elasticloadbalancingv2.NewFromConfig(cfg)
 
 	return ecsClient, ec2Client // , elbClient
@@ -560,6 +560,7 @@ type LoadBalancerAnalysis struct {
 	LoadBalancers []string
 }
 
+//lint:ignore gocritic commentedOutCode This block is intentionally left for future reference
 // analyzeLoadBalancerExposure checks if task is associated with load balancers.
 // func analyzeLoadBalancerExposure(
 //	ctx context.Context,
