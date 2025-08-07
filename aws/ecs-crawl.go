@@ -3,9 +3,10 @@ package aws
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -882,6 +883,10 @@ func analyzeNetworkExposure(
 	//}
 
 	// Determine overall exposure
+	// Determine overall exposure - a container is publicly exposed if it meets any of these conditions:
+	// 1. Has a public IP address
+	// 2. Is in a public subnet AND has open ports that allow external access
+	// 3. Is associated with a public load balancer
 	analysis.IsPubliclyExposed = analysis.HasPublicIP || analysis.IsInPublicSubnet || len(analysis.LoadBalancers) > 0
 
 	return analysis, nil
