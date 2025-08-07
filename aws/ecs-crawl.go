@@ -87,6 +87,7 @@ func EcsCrawl(
 			if err != nil {
 				cnasLogger.Warn().Msgf("🐳 ECS Crawler: Failed to process region %s: %v", regionName, err)
 				resultChan <- regionResult{nil, regionName, err}
+
 				return
 			}
 
@@ -122,7 +123,6 @@ func crawlRegionContainers(
 	defer ecsCrawlRegionTimer(cnasLogger, regionName)()
 
 	ecsClient, ec2Client /*, elbClient*/ := createRegionClients(regionName, cfg, cnasLogger)
-	totalContainers := 0
 
 	// List containers in this region
 	cnasLogger.Info().Msgf("🐳 ECS Crawler: 🐳 Listing containers in region %s...", regionName)
@@ -144,7 +144,6 @@ func crawlRegionContainers(
 		len(regionContainersDataList),
 		regionName,
 	)
-	totalContainers += len(regionContainersDataList)
 
 	// Perform network analysis and generate containerDataList
 	if len(regionContainersDataList) == 0 {
@@ -160,7 +159,7 @@ func crawlRegionContainers(
 		ctx,
 		ecsClient,
 		ec2Client,
-		//elbClient,
+		// elbClient,
 		taskArnContainerMap,
 		cnasLogger,
 	)
@@ -208,7 +207,7 @@ func createRegionClients(
 	cnasLogger.Info().Msgf("🐳 ECS Crawler: 🔧 Creating AWS clients for region %s...", regionName)
 	ecsClient = ecs.NewFromConfig(cfg)
 	ec2Client = ec2.NewFromConfig(cfg)
-	//elbClient = elasticloadbalancingv2.NewFromConfig(cfg)
+	// elbClient = elasticloadbalancingv2.NewFromConfig(cfg)
 
 	return ecsClient, ec2Client // , elbClient
 }
@@ -257,6 +256,7 @@ func listRegionClusters(
 					clusterArn,
 					err,
 				)
+
 				continue
 			}
 
@@ -293,6 +293,7 @@ func listRegionContainersData(
 				aws.ToString(cluster.ClusterName),
 				err,
 			)
+
 			return allContainersDataList, err
 		}
 		allContainersDataList = append(allContainersDataList, clusterContainersDataList...)
@@ -558,11 +559,11 @@ type LoadBalancerAnalysis struct {
 }
 
 // analyzeLoadBalancerExposure checks if task is associated with load balancers.
-//func analyzeLoadBalancerExposure(
+// func analyzeLoadBalancerExposure(
 //	ctx context.Context,
 //	client *elasticloadbalancingv2.Client,
 //	cnasLogger zerolog.Logger,
-//) (*LoadBalancerAnalysis, error) {
+// ) (*LoadBalancerAnalysis, error) {
 //	// _, err := client.DescribeLoadBalancerAttributes(ctx)
 //	analysis := &LoadBalancerAnalysis{
 //		LoadBalancers: []string{},
@@ -580,7 +581,7 @@ type LoadBalancerAnalysis struct {
 //	cnasLogger.Warn().Msgf("🐳 ECS Crawler: ⚠️ Load balancer analysis not fully implemented - returning empty results\n")
 //
 //	return analysis, fmt.Errorf("Todo Analyzing load balancer exposure... \n")
-//}
+// }
 
 func describeCluster(ctx context.Context, client *ecs.Client, clusterArn string) (*types2.Cluster, error) {
 	resp, err := client.DescribeClusters(ctx, &ecs.DescribeClustersInput{
@@ -752,7 +753,7 @@ func createTaskArnContainerNetworkMap(
 	ctx context.Context,
 	ecsClient *ecs.Client,
 	ec2Client *ec2.Client,
-	//elbClient *elasticloadbalancingv2.Client,
+	// elbClient *elasticloadbalancingv2.Client,
 	taskArnContainerDataMap map[string]ContainerData,
 	cnasLogger zerolog.Logger,
 ) map[string]*NetworkExposureAnalysis {
@@ -768,22 +769,7 @@ func createTaskArnContainerNetworkMap(
 		}
 
 		// Perform comprehensive network analysis
-		networkAnalysis, err := analyzeNetworkExposure(ctx, ec2Client /*, elbClient*/, taskDetails, cnasLogger)
-		if err != nil {
-			cnasLogger.Err(err).Msgf("🐳 ECS Crawler: ⚠️ Warning: Failed to analyze network exposure for %s: %v", taskArn, err)
-			// Create basic analysis as fallback
-			networkAnalysis = &NetworkExposureAnalysis{
-				IsPubliclyExposed: container.HostPort > 0,
-				ExposureReasons:   []string{"Basic port mapping check"},
-				NetworkMode:       "unknown",
-				SecurityGroups:    []string{},
-				OpenPorts:         []string{},
-				LoadBalancers:     []string{},
-				PrivateIPs:        []string{container.PrivateIP},
-				PublicIPs:         []string{},
-				NetworkInterfaces: []string{},
-			}
-		}
+		networkAnalysis := analyzeNetworkExposure(ctx, ec2Client /*, elbClient*/, taskDetails, cnasLogger)
 
 		taskArnContainerNetworkMap[taskArn] = networkAnalysis
 	}
@@ -802,14 +788,14 @@ func createTaskArnContainerMap(containerData []ContainerData) map[string]Contain
 
 // analyzeNetworkExposure performs comprehensive network exposure analysis for a task
 //
-//goland:noinspection SpellCheckingInspection
+// goland:noinspection SpellCheckingInspection
 func analyzeNetworkExposure(
 	ctx context.Context,
 	ec2Client *ec2.Client,
-	//elbv2Client *elasticloadbalancingv2.Client,
+	// elbv2Client *elasticloadbalancingv2.Client,
 	task *types2.Task,
 	cnasLogger zerolog.Logger,
-) (*NetworkExposureAnalysis, error) {
+) *NetworkExposureAnalysis {
 	analysis := &NetworkExposureAnalysis{
 		ExposureReasons:   []string{},
 		SecurityGroups:    []string{},
@@ -874,13 +860,13 @@ func analyzeNetworkExposure(
 	}
 
 	// Check for load balancer associations
-	//lbAnalysis, err := analyzeLoadBalancerExposure(ctx, elbv2Client, cnasLogger)
-	//if err != nil {
+	// lbAnalysis, err := analyzeLoadBalancerExposure(ctx, elbv2Client, cnasLogger)
+	// if err != nil {
 	//	cnasLogger.Warn().Msgf("🐳 ECS Crawler: ⚠️ Warning: Failed to analyze load balancer exposure: %v\n", err)
-	//} else if len(lbAnalysis.LoadBalancers) > 0 {
+	// } else if len(lbAnalysis.LoadBalancers) > 0 {
 	//	analysis.LoadBalancers = lbAnalysis.LoadBalancers
 	//	analysis.ExposureReasons = append(analysis.ExposureReasons, "Associated with load balancer")
-	//}
+	// }
 
 	// Determine overall exposure
 	// Determine overall exposure - a container is publicly exposed if it meets any of these conditions:
@@ -889,7 +875,7 @@ func analyzeNetworkExposure(
 	// 3. Is associated with a public load balancer
 	analysis.IsPubliclyExposed = analysis.HasPublicIP || analysis.IsInPublicSubnet || len(analysis.LoadBalancers) > 0
 
-	return analysis, nil
+	return analysis
 }
 
 func ecsCrawlTimer(cnasLogger zerolog.Logger) func() {
