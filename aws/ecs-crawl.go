@@ -207,6 +207,8 @@ func createRegionClients(
 	cnasLogger.Info().Msgf("🐳 ECS Crawler: 🔧 Creating AWS clients for region %s...", regionName)
 	ecsClient = ecs.NewFromConfig(cfg)
 	ec2Client = ec2.NewFromConfig(cfg)
+
+	//lint:ignore commentedOutCode This line is intentionally left for future use
 	// elbClient = elasticloadbalancingv2.NewFromConfig(cfg)
 
 	return ecsClient, ec2Client // , elbClient
@@ -594,7 +596,7 @@ func describeCluster(ctx context.Context, client *ecs.Client, clusterArn string)
 		return &resp.Clusters[0], nil
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("cluster %s not found", clusterArn)
 }
 
 func listTasks(ctx context.Context, client *ecs.Client, clusterArn string) ([]string, error) {
