@@ -18,7 +18,7 @@ import (
 // Global constant for the target role ARN
 const DefaultRegion = "us-east-1" // Default region for getting all regions
 const TargetRoleArn = "arn:aws:iam::822112283600:role/CnasTargetRole"
-const DebugFastMode = false // Set to true for faster testing, skips region discovery
+const DebugFastMode = true // Set to true for faster testing, skips region discovery
 
 func main() {
 

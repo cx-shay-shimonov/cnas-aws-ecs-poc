@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	types2 "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
@@ -21,21 +22,12 @@ type ContainerData struct {
 
 	TaskARN string
 	Region  string
+	NicID   string // Network interface ID for optimization
 }
 
 const maxClustersPerPage = 10
 const maxTasksPerPage = 100
 const taskDescriptionBatchSize = 100 // AWS limit for DescribeTasks
-
-// ENIAnalysis contains ENI-specific analysis results.
-type ENIAnalysis struct {
-	HasPublicIP      bool
-	IsInPublicSubnet bool
-	SecurityGroups   []string // todo: is this needed?
-	OpenPorts        []string
-	PrivateIPs       []string
-	PublicIPs        []string
-}
 
 func EcsCrawl(
 	regions []string,
@@ -100,7 +92,7 @@ func crawlRegionContainers(
 
 	defer ecsCrawlRegionTimer(cnasLogger, regionName)()
 
-	ecsClient := createRegionClients(regionName, cfg, cnasLogger)
+	ecsClient, ec2Client := createRegionClients(regionName, cfg, cnasLogger)
 
 	// List containers in this region
 	cnasLogger.Info().Msgf("ECS Crawler: Listing containers in region %s...", regionName)
@@ -114,7 +106,7 @@ func crawlRegionContainers(
 		cnasLogger.Info().Msgf("ECS Crawler: No clusters in region: %s.", regionName)
 		return nil, nil
 	}
-	regionContainersDataList, err := listRegionContainersData(ctx, ecsClient, regionClustersList, regionName, cnasLogger)
+	regionContainersDataList, err := listRegionContainersData(ctx, ecsClient, ec2Client, regionClustersList, regionName, cnasLogger)
 
 	if err != nil {
 		cnasLogger.Err(err).Msgf("ECS Crawler: operation failed in region %s: %v", regionName, err)
@@ -146,12 +138,13 @@ func createRegionClients(
 	regionName string,
 	cfg aws.Config,
 	cnasLogger zerolog.Logger,
-) (ecsClient *ecs.Client) {
+) (ecsClient *ecs.Client, ec2Client *ec2.Client) {
 	// Create clients for this region
 	cnasLogger.Info().Msgf("ECS Crawler: Creating AWS clients for region %s...", regionName)
 	ecsClient = ecs.NewFromConfig(cfg)
+	ec2Client = ec2.NewFromConfig(cfg)
 
-	return ecsClient
+	return ecsClient, ec2Client
 }
 
 func listRegionClusters(
@@ -220,6 +213,7 @@ func listRegionClusters(
 func listRegionContainersData(
 	ctx context.Context,
 	client *ecs.Client,
+	ec2Client *ec2.Client,
 	clusters []*types2.Cluster,
 	region string,
 	cnasLogger zerolog.Logger,
@@ -228,7 +222,7 @@ func listRegionContainersData(
 	allContainersDataList := make([]ContainerData, 0)
 	for _, cluster := range clusters {
 		cnasLogger.Info().Msgf("ECS Crawler: Processing cluster: %s", aws.ToString(cluster.ClusterName))
-		clusterContainersDataList, err := listContainersInCluster(ctx, client, cluster, region, cnasLogger)
+		clusterContainersDataList, err := listContainersInCluster(ctx, client, ec2Client, cluster, region, cnasLogger)
 		if err != nil {
 			cnasLogger.Err(err).Msgf(
 				"ECS Crawler:      Failed to list containers in cluster %s: %v",
@@ -247,6 +241,7 @@ func listRegionContainersData(
 func listContainersInCluster(
 	ctx context.Context,
 	client *ecs.Client,
+	ec2Client *ec2.Client,
 	cluster *types2.Cluster,
 	region string,
 	cnasLogger zerolog.Logger,
@@ -323,6 +318,54 @@ func listContainersInCluster(
 		len(clusterTasks),
 		clusterName,
 	)
+
+	// Phase 1: Build unique NICs map for network analysis optimization
+	nicExposureMap := make(map[string]bool)
+	for _, container := range containersDataList {
+		if container.NicID != "" {
+			if _, exists := nicExposureMap[container.NicID]; !exists {
+				nicExposureMap[container.NicID] = false // Initialize as not exposed
+			}
+		}
+	}
+
+	// Phase 2: Analyze unique NICs (if any found)
+	if len(nicExposureMap) > 0 {
+		cnasLogger.Info().Msgf("ECS Crawler: Analyzing network exposure for %d unique NICs in cluster %s...", len(nicExposureMap), clusterName)
+
+		// Calculate efficiency
+		if len(containersDataList) > len(nicExposureMap) {
+			efficiency := float64(len(containersDataList)-len(nicExposureMap)) / float64(len(containersDataList)) * 100
+			cnasLogger.Info().Msgf("ECS Crawler: Network analysis efficiency: %d containers using %d unique NICs (%.1f%% optimization)",
+				len(containersDataList), len(nicExposureMap), efficiency)
+		}
+
+		err := analyzeUniqueNICs(ctx, ec2Client, nicExposureMap, cnasLogger)
+		if err != nil {
+			cnasLogger.Warn().Msgf("ECS Crawler: Network analysis failed for cluster %s: %v", clusterName, err)
+		}
+
+		// Phase 3: Map results back to containers
+		for i, container := range containersDataList {
+			if container.NicID != "" {
+				if isExposed, exists := nicExposureMap[container.NicID]; exists {
+					containersDataList[i].PublicExposed = isExposed
+				}
+			}
+		}
+
+		// Log summary of exposure analysis
+		exposedCount := 0
+		for _, container := range containersDataList {
+			if container.PublicExposed {
+				exposedCount++
+			}
+		}
+		cnasLogger.Info().Msgf("ECS Crawler: Network analysis complete for cluster %s: %d/%d containers are publicly exposed",
+			clusterName, exposedCount, len(containersDataList))
+	} else {
+		cnasLogger.Info().Msgf("ECS Crawler: No network interfaces found for analysis in cluster %s", clusterName)
+	}
 
 	return containersDataList, nil
 }
@@ -413,12 +456,14 @@ func createContainerData(
 ) ContainerData {
 
 	containerData := ContainerData{
-		ClusterName: aws.ToString(cluster.ClusterName),
-		Name:        aws.ToString(container.Name),
-		Image:       aws.ToString(container.Image),
-		ImageSHA:    aws.ToString(container.ImageDigest),
-		TaskARN:     aws.ToString(task.TaskArn),
-		Region:      region,
+		ClusterName:   aws.ToString(cluster.ClusterName),
+		Name:          aws.ToString(container.Name),
+		Image:         aws.ToString(container.Image),
+		ImageSHA:      aws.ToString(container.ImageDigest),
+		TaskARN:       aws.ToString(task.TaskArn),
+		Region:        region,
+		NicID:         getTaskNetworkInterface(task), // Extract network interface ID
+		PublicExposed: false,                         // Will be updated during network analysis
 	}
 
 	return containerData

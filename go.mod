@@ -5,6 +5,7 @@ go 1.24.5
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.17
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.70
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.232.0
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.59.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.34.0
 	github.com/rs/zerolog v1.34.0
@@ -13,8 +14,6 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.5
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.232.0
-	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.46.0
-	github.com/google/uuid v1.6.0
 )
 
 require (
