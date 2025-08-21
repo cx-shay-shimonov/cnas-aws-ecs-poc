@@ -258,10 +258,10 @@ func listContainersInCluster(
 	var containersDataList []ContainerData
 
 	// Get tasks in the cluster
-	taskArnList, err := listTasks(ctx, client, clusterArn)
+	clusterTaskArnList, err := listClusterTasks(ctx, client, clusterArn)
 	if err != nil {
 		cnasLogger.Err(err).Msgf(
-			"ECS Crawler:      Failed to list tasks in cluster %s: %v",
+			"ECS Crawler:      Failed to list clusterTasks in cluster %s: %v",
 			clusterName,
 			err,
 		)
@@ -269,19 +269,19 @@ func listContainersInCluster(
 		return nil, err
 	}
 
-	if len(taskArnList) == 0 {
-		cnasLogger.Warn().Msgf("ECS Crawler:      No running tasks found in cluster: %s", clusterName)
+	if len(clusterTaskArnList) == 0 {
+		cnasLogger.Warn().Msgf("ECS Crawler:      No running clusterTasks found in cluster: %s", clusterName)
 
 		return containersDataList, nil
 	}
 
-	cnasLogger.Info().Msgf("ECS Crawler:      Found %d running tasks", len(taskArnList))
+	cnasLogger.Info().Msgf("ECS Crawler:      Found %d running clusterTasks", len(clusterTaskArnList))
 
 	// Describe tasks to get container details
-	tasks, err := describeTasks(ctx, client, clusterArn, taskArnList)
+	clusterTasks, err := describeClusterTasks(ctx, client, clusterArn, clusterTaskArnList)
 	if err != nil {
 		cnasLogger.Err(err).Msgf(
-			"ECS Crawler:      Failed to describe tasks in cluster %s: %v",
+			"ECS Crawler:      Failed to describe clusterTasks in cluster %s: %v",
 			clusterName,
 			err,
 		)
@@ -291,7 +291,7 @@ func listContainersInCluster(
 
 	totalContainers := 0
 
-	for taskIndex, task := range tasks {
+	for taskIndex, task := range clusterTasks {
 		cnasLogger.Info().Msgf("ECS Crawler:           Task %d: %s", taskIndex+1, aws.ToString(task.TaskArn))
 
 		if len(task.Containers) == 0 {
@@ -300,11 +300,6 @@ func listContainersInCluster(
 		}
 
 		cnasLogger.Info().Msgf("ECS Crawler:           List Containers (%d):", len(task.Containers))
-
-		if len(task.Containers) == 0 {
-			cnasLogger.Warn().Msgf("ECS Crawler:           No task.Containers found in task %s", aws.ToString(task.TaskArn))
-			continue
-		}
 
 		for containerIndex, container := range task.Containers {
 			// Set region for each container
@@ -325,7 +320,7 @@ func listContainersInCluster(
 	cnasLogger.Info().Msgf(
 		"ECS Crawler:      Found %d containersDataList across %d tasks in cluster %s",
 		totalContainers,
-		len(tasks),
+		len(clusterTasks),
 		clusterName,
 	)
 
@@ -346,7 +341,7 @@ func describeCluster(ctx context.Context, client *ecs.Client, clusterArn string)
 	return nil, fmt.Errorf("cluster %s not found", clusterArn)
 }
 
-func listTasks(ctx context.Context, client *ecs.Client, clusterArn string) ([]string, error) {
+func listClusterTasks(ctx context.Context, client *ecs.Client, clusterArn string) ([]string, error) {
 	var allTaskArns []string
 	var nextToken *string
 
@@ -376,25 +371,25 @@ func listTasks(ctx context.Context, client *ecs.Client, clusterArn string) ([]st
 	return allTaskArns, nil
 }
 
-func describeTasks(
+func describeClusterTasks(
 	ctx context.Context,
 	client *ecs.Client,
 	clusterArn string,
-	taskArnList []string,
+	clusterTaskArnList []string,
 ) ([]types2.Task, error) {
-	if len(taskArnList) == 0 {
+	if len(clusterTaskArnList) == 0 {
 		return nil, nil
 	}
 
 	var allTasks []types2.Task
 	// Process tasks in batches of taskDescriptionBatchSize
-	for i := 0; i < len(taskArnList); i += taskDescriptionBatchSize {
+	for i := 0; i < len(clusterTaskArnList); i += taskDescriptionBatchSize {
 		end := i + taskDescriptionBatchSize
-		if end > len(taskArnList) {
-			end = len(taskArnList)
+		if end > len(clusterTaskArnList) {
+			end = len(clusterTaskArnList)
 		}
 
-		batch := taskArnList[i:end]
+		batch := clusterTaskArnList[i:end]
 		output, err := client.DescribeTasks(ctx, &ecs.DescribeTasksInput{
 			Cluster: &clusterArn,
 			Tasks:   batch,
