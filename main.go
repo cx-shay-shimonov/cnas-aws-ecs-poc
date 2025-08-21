@@ -22,10 +22,8 @@ const DebugFastMode = false // Set to true for faster testing, skips region disc
 
 func main() {
 
-	// Initialize zerolog
 	cnasLogger := initLogger()
 
-	// Create a context
 	ctx := context.TODO()
 
 	defaultCfg, err := cnasAws.LoadAWSConfig(ctx, DefaultRegion, TargetRoleArn)
