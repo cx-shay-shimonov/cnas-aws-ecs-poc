@@ -23,7 +23,7 @@ This tool offers **two analysis approaches** optimized for different use cases:
 
 ### 🔧 **Configuration**
 
-The analysis approach is configured at **compile time** using a constant in `aws/ecs-network-access-analyzer.go`:
+The analysis approach is configured at **compile time** using a constant in `aws/network-analysis-constants.go`:
 
 ```go
 // Configure the network analysis approach at compile time
@@ -80,7 +80,7 @@ const networkAnalysisApproach = ApproachVPC
 
 ### ⚙️ **Configuration Constants**
 
-The application uses several configurable constants for optimal performance:
+The application uses several configurable constants for optimal performance, located in `aws/network-analysis-constants.go`:
 
 ```go
 // Analysis approach selection
@@ -119,6 +119,70 @@ const eniAnalysisBatchSize = 5               // Higher throughput
 const maxENIsPerCall = 100                   // More conservative limits
 const eniAnalysisBatchSize = 2               // Reduced concurrency
 ```
+
+## 🏗️ **Architecture & File Structure**
+
+The network analyzer has been **refactored into a modular architecture** for better maintainability and separation of concerns:
+
+### **📁 File Organization**
+
+```
+aws/
+├── 📋 network-analysis-constants.go    # All configuration constants and types
+├── 🔧 network-analysis-common.go       # Shared utilities (logging, IGW discovery)  
+├── 🔍 network-analysis-vpc.go          # VPC approach implementation
+├── 🚀 network-analysis-scope.go        # Scope approach implementation  
+└── ⚡ ecs-network-analyzer.go          # Main entry point and dispatcher
+```
+
+### **🎯 Modular Benefits**
+
+#### **Clear Separation of Concerns:**
+- ✅ **Constants**: All timeouts, batch sizes, and approach selection in one place
+- ✅ **Common Utils**: Shared functions (IGW discovery, logging, container updates) used by both approaches
+- ✅ **VPC Logic**: Individual container analysis isolated in dedicated file
+- ✅ **Scope Logic**: Batch analysis and optimization isolated in dedicated file
+- ✅ **Main Dispatcher**: Simple entry point that routes to appropriate approach
+
+#### **Maintainability Improvements:**
+- ✅ **Smaller Files**: Each file ~150-200 lines vs original 666 lines
+- ✅ **Focused Responsibility**: One concern per file
+- ✅ **Easy Testing**: Isolated functions for unit testing
+- ✅ **Clear Dependencies**: Obvious imports and relationships
+
+#### **Scalability Advantages:**
+- ✅ **Easy Approach Addition**: Add new analysis methods without touching existing code
+- ✅ **Independent Optimization**: Improve each approach separately
+- ✅ **Modular Updates**: Change constants or utilities without affecting analysis logic
+
+### **🔄 How It Works Together**
+
+```go
+// 1. Main entry point (ecs-network-analyzer.go)
+RunAnalysis(containers) {
+    // Create EC2 client and deduplicate NICs
+    
+    // 2. Dispatch based on approach constant (network-analysis-constants.go)
+    if networkAnalysisApproach == ApproachScope {
+        return runScopeAnalysis()  // -> network-analysis-scope.go
+    } else {
+        return runVPCAnalysis()    // -> network-analysis-vpc.go  
+    }
+    
+    // 3. Both approaches use shared utilities (network-analysis-common.go)
+    // - logNICExposureStatus()
+    // - findInternetGatewayForVPC()
+    // - updateContainerExposureStatus()
+}
+```
+
+### **⚡ Performance Impact**
+
+The refactoring maintains **identical performance** while improving code quality:
+- ✅ **No Runtime Overhead**: Same execution paths as before
+- ✅ **Better Compile Optimization**: Smaller focused files
+- ✅ **Cleaner Code Paths**: Each approach has dedicated optimized functions
+- ✅ **Reduced Code Duplication**: Shared helper functions eliminate repeated logic
 
 ## 📋 How It Works (The Detective Story)
 
@@ -909,10 +973,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **📋 Production-Ready Defaults**: Optimized constants for different environments
 
 ### 🛠️ **Technical Improvements**
+- **🏗️ Modular Architecture**: Refactored into 5 focused files for better maintainability
 - **📈 Full Pagination Support**: Handles unlimited ENIs and IGWs with proper batching
 - **🎯 AWS API Compliance**: Respects all AWS API limits and best practices
 - **🔍 Smart Deduplication**: Analyzes unique ENIs only, avoiding redundant work
 - **⚡ Parallel Resource Creation**: Creates paths and starts analyses concurrently
+- **📁 Clear Separation of Concerns**: Constants, common utils, VPC logic, and scope logic in dedicated files
+- **🔧 Clean Helper Functions**: Extracted container update logic for better code reusability
 
 ### 📊 **Enhanced Reporting**
 - **📋 Scan Metadata**: Total scan time, exposure rates, and comprehensive statistics
