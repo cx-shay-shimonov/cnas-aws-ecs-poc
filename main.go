@@ -76,22 +76,51 @@ func main() {
 			Msg("Failed to load AWS configuration for role")
 	}
 
-	resources := cnasAws.EcsCrawl(regionsNames, ctx, &cfg, cnasLogger)
+	startTime := time.Now()
+	containersData := cnasAws.EcsCrawl(regionsNames, ctx, &cfg, cnasLogger)
+	endTime := time.Now()
+	scanDuration := endTime.Sub(startTime)
+
+	// Count exposed containersData
+	exposedCount := 0
+	for _, container := range containersData {
+		if container.PublicExposed {
+			exposedCount++
+		}
+	}
+
+	// Calculate exposure rate
+	exposureRate := 0.0
+	if len(containersData) > 0 {
+		exposureRate = float64(exposedCount) / float64(len(containersData)) * 100.0
+	}
+
+	// Create metadata
+	metadata := cnasAws.ScanMetadata{
+		TotalScanTime:       scanDuration.String(),
+		TotalScanTimeMs:     scanDuration.Milliseconds(),
+		ScanStartTime:       startTime,
+		ScanEndTime:         endTime,
+		TotalContainers:     len(containersData),
+		TotalPublicExposed:  exposedCount,
+		TotalRegionsScanned: len(regionsNames),
+		ExposureRate:        exposureRate,
+	}
 
 	// Save detailed results to CSV and JSON files after all regions are processed
-	if len(resources) > 0 {
+	if len(containersData) > 0 {
 		// Create channels to receive results from concurrent operations
 		csvChan := make(chan bool, 1)
 		jsonChan := make(chan bool, 1)
 
 		// Run ExportCSV concurrently
 		go func() {
-			csvChan <- cnasAws.ExportCSV(resources)
+			csvChan <- cnasAws.ExportCSV(containersData)
 		}()
 
-		// Run ExportJSON concurrently
+		// Run ExportJSON concurrently (with timing metadata)
 		go func() {
-			jsonChan <- cnasAws.ExportJSON(resources)
+			jsonChan <- cnasAws.ExportJSON(containersData, metadata)
 		}()
 
 		// Wait for both operations to complete and collect results
@@ -102,16 +131,16 @@ func main() {
 		if !csvSuccess {
 			cnasLogger.Error().Msg("Failed to save results to CSV file")
 		} else {
-			cnasLogger.Info().Msg("Results saved to containers.csv successfully")
+			cnasLogger.Info().Msg("Results saved to containersData.csv successfully")
 		}
 
 		if !jsonSuccess {
 			cnasLogger.Error().Msg("Failed to save results to JSON file")
 		} else {
-			cnasLogger.Info().Msg("Results saved to containers.json successfully")
+			cnasLogger.Info().Msg("Results saved to containersData.json successfully")
 		}
 	} else {
-		cnasLogger.Info().Msg("No containers found to save to CSV or JSON")
+		cnasLogger.Info().Msg("No containersData found to save to CSV or JSON")
 	}
 }
 

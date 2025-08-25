@@ -5,7 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 )
+
+// ScanResults represents the complete scan output with results and metadata
+type ScanResults struct {
+	Results  []ContainerData `json:"results"`
+	Metadata ScanMetadata    `json:"metadata"`
+}
+
+// ScanMetadata contains timing and summary information about the scan
+type ScanMetadata struct {
+	TotalScanTime       string    `json:"total_scan_time"`       // e.g., "3.2s"
+	TotalScanTimeMs     int64     `json:"total_scan_time_ms"`    // milliseconds
+	ScanStartTime       time.Time `json:"scan_start_time"`       // ISO timestamp
+	ScanEndTime         time.Time `json:"scan_end_time"`         // ISO timestamp
+	TotalContainers     int       `json:"total_containers"`      // count
+	TotalPublicExposed  int       `json:"total_public_exposed"`  // count
+	TotalRegionsScanned int       `json:"total_regions_scanned"` // count
+	ExposureRate        float64   `json:"exposure_rate"`         // percentage (0.0-100.0)
+}
 
 func ExportCSV(containers []ContainerData) bool {
 	// Create CSV file
@@ -58,7 +77,8 @@ func ExportCSV(containers []ContainerData) bool {
 	return true
 }
 
-func ExportJSON(containers []ContainerData) bool {
+// ExportJSON exports containers with comprehensive metadata including timing
+func ExportJSON(containers []ContainerData, metadata ScanMetadata) bool {
 	// Create JSON file
 	jsonFile, err := os.Create("containers.json")
 	if err != nil {
@@ -73,16 +93,24 @@ func ExportJSON(containers []ContainerData) bool {
 		}
 	}()
 
+	// Create complete scan results structure
+	scanResults := ScanResults{
+		Results:  containers,
+		Metadata: metadata,
+	}
+
 	// Create JSON encoder
 	encoder := json.NewEncoder(jsonFile)
 	encoder.SetIndent("", "  ") // Pretty print
 
 	// Write JSON data
-	if err := encoder.Encode(containers); err != nil {
+	if err := encoder.Encode(scanResults); err != nil {
 		fmt.Printf("❌ Failed to write JSON data: %v\n", err)
 		return false
 	}
 
-	fmt.Printf("✅ Successfully saved %d container records to containers.json\n", len(containers))
+	fmt.Printf("✅ Successfully saved %d container records with metadata to containers.json\n", len(containers))
+	fmt.Printf("📊 Scan completed in %s - %d/%d containers publicly exposed (%.1f%%)\n",
+		metadata.TotalScanTime, metadata.TotalPublicExposed, metadata.TotalContainers, metadata.ExposureRate)
 	return true
 }

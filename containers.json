@@ -1,38 +1,44 @@
-[
-  {
-    "Name": "ecs-service-connect-o3DQRY",
-    "Image": "",
-    "ImageSHA": "",
-    "PublicExposed": false,
-    "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
-    "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca",
-    "Region": "eu-west-2"
-  },
-  {
-    "Name": "php-demo-service",
-    "Image": "822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service@sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
-    "ImageSHA": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
-    "PublicExposed": false,
-    "ClusterName": "demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2",
-    "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-eu-demo-ecs-Cluster-qr3szOyHM9v2/f45adfe80f374828b17c06f80a0ad6ca",
-    "Region": "eu-west-2"
-  },
-  {
-    "Name": "nginx-container",
-    "Image": "nginx:latest",
-    "ImageSHA": "sha256:91734281c0ebfc6f1aea979cffeed5079cfe786228a71cc6f1f46a228cde6e34",
-    "PublicExposed": false,
-    "ClusterName": "AST-83961-Fargate",
-    "TaskARN": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
-    "Region": "us-east-1"
-  },
-  {
-    "Name": "ecs-service-connect-60JfD",
-    "Image": "",
-    "ImageSHA": "",
-    "PublicExposed": false,
-    "ClusterName": "AST-83961-Fargate",
-    "TaskARN": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
-    "Region": "us-east-1"
+{
+  "results": [
+    {
+      "Name": "demo-php",
+      "Image": "822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service",
+      "ImageSHA": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
+      "PublicExposed": false,
+      "ClusterName": "demo-php-cluster",
+      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-cluster/6de39b1e068a47e4904c51aea6c50f40",
+      "Region": "eu-west-2",
+      "NicID": "eni-0960b562b52e85d25"
+    },
+    {
+      "Name": "nginx-container",
+      "Image": "nginx:latest",
+      "ImageSHA": "sha256:91734281c0ebfc6f1aea979cffeed5079cfe786228a71cc6f1f46a228cde6e34",
+      "PublicExposed": false,
+      "ClusterName": "AST-83961-Fargate",
+      "TaskARN": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
+      "Region": "us-east-1",
+      "NicID": "eni-0d925d5983cb0b165"
+    },
+    {
+      "Name": "ecs-service-connect-60JfD",
+      "Image": "",
+      "ImageSHA": "",
+      "PublicExposed": false,
+      "ClusterName": "AST-83961-Fargate",
+      "TaskARN": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
+      "Region": "us-east-1",
+      "NicID": "eni-0d925d5983cb0b165"
+    }
+  ],
+  "metadata": {
+    "total_scan_time": "23.802730833s",
+    "total_scan_time_ms": 23802,
+    "scan_start_time": "2025-08-25T18:01:30.220459+03:00",
+    "scan_end_time": "2025-08-25T18:01:54.023386+03:00",
+    "total_containers": 3,
+    "total_public_exposed": 0,
+    "total_regions_scanned": 33,
+    "exposure_rate": 0
   }
-]
+}
