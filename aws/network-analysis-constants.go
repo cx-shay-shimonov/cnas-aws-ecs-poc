@@ -7,8 +7,8 @@ type NetworkAnalysisApproach string
 
 // Network analysis approach constants.
 const (
-	ApproachVPC   NetworkAnalysisApproach = "vpc"   // Per-NIC VPC Reachability Analyzer
-	ApproachScope NetworkAnalysisApproach = "scope" // Account-wide Network Access Scope (future)
+	ApproachVPC   NetworkAnalysisApproach = "vpc"   // Optimized VPC Reachability Analyzer with batch processing
+	ApproachScope NetworkAnalysisApproach = "scope" // Account-wide Network Access Scope
 )
 
 // Configure the network analysis approach at compile time.
@@ -17,7 +17,7 @@ const networkAnalysisApproach = ApproachScope
 // API polling and timeout configurations.
 const pollingInterval = 5 * time.Second
 const vpcAnalysisTimeout = 2 * time.Minute
-const scopeAnalysisTimeout = 90 * time.Second
+const scopeAnalysisTimeout = 10 * time.Minute // Real scope analysis takes longer
 
 // AWS API batch size and pagination limits.
 const maxENIsPerCall = 200             // AWS DescribeNetworkInterfaces limit

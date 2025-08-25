@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -12,402 +13,249 @@ import (
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
-// checkContainerExposureScopeReachability uses batch VPC analysis to simulate scope-like behavior
-// This approach groups ENIs by VPC and processes them more efficiently than individual analysis.
-func checkContainerExposureScopeReachability(ctx context.Context, ec2Client *ec2.Client, nicIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
+// runScopeAnalysis performs real AWS Network Access Scope analysis following reference code pattern
+// Groups containers by ENI to avoid duplicate scopes, then maps findings back to all containers on each ENI
+func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, containers []ContainerData, cnasLogger zerolog.Logger) (map[string]bool, error) {
+	results := make(map[string][]ec2types.AccessScopePath)
 	nicExposureMap := make(map[string]bool)
 
-	// Initialize all NICs as not exposed
-	for _, nicID := range nicIDs {
-		nicExposureMap[nicID] = false
+	// Group containers by their network interfaces to avoid duplicate scopes (like reference code)
+	eniToContainers := make(map[string][]ContainerData)
+	for _, container := range containers {
+		if container.NicID != "" {
+			eniToContainers[container.NicID] = append(eniToContainers[container.NicID], container)
+		}
 	}
 
-	if len(nicIDs) == 0 {
+	cnasLogger.Info().Msgf("ECS Crawler: Starting real AWS Network Access Scope analysis for %d unique ENIs across %d containers", len(eniToContainers), len(containers))
+
+	if len(eniToContainers) == 0 {
+		cnasLogger.Warn().Msg("ECS Crawler: No ENI IDs found for scope analysis")
 		return nicExposureMap, nil
 	}
 
-	cnasLogger.Info().Msgf("ECS Crawler: Using scope-like batch analysis for %d ENIs", len(nicIDs))
+	// Define common web ports to check (like the reference code)
+	ports := []string{"80", "443", "8080", "3000", "8000", "9000"}
 
-	// Get VPC information for all ENIs to group them efficiently
-	vpcToENIs, err := groupENIsByVPC(ctx, ec2Client, nicIDs, cnasLogger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to group ENIs by VPC: %w", err)
-	}
+	// Create and analyze scope for each unique ENI (exactly like reference code)
+	eniCount := 0
+	for eni, containersOnENI := range eniToContainers {
+		eniCount++
+		cnasLogger.Info().Msgf("ECS Crawler: Checking ENI %s (%d/%d) (containers: %s)",
+			eni, eniCount, len(eniToContainers),
+			func() string {
+				var names []string
+				for _, c := range containersOnENI {
+					names = append(names, c.Name)
+				}
+				return strings.Join(names, ", ")
+			}())
 
-	cnasLogger.Debug().Msgf("ECS Crawler: Grouped %d ENIs across %d VPCs", len(nicIDs), len(vpcToENIs))
-
-	// Process each VPC's ENIs in batch
-	type vpcResult struct {
-		vpcID      string
-		eniResults map[string]bool
-		err        error
-	}
-	resultChan := make(chan vpcResult, len(vpcToENIs))
-
-	// Start workers for each VPC
-	for vpcID, enis := range vpcToENIs {
-		go func(vpcId string, vpcEnisIds []string) {
-			vpcENIResults, err := analyzeVPCENIsBatch(ctx, ec2Client, vpcId, vpcEnisIds, cnasLogger)
-			resultChan <- vpcResult{vpcId, vpcENIResults, err}
-		}(vpcID, enis)
-	}
-
-	// Collect results from all VPCs
-	for i := 0; i < len(vpcToENIs); i++ {
-		result := <-resultChan
-		if result.err != nil {
-			cnasLogger.Warn().Msgf("ECS Crawler: Error analyzing VPC %s: %v", result.vpcID, result.err)
+		findings, err := checkSpecificENIAccess(ctx, ec2Client, eni, ports, cnasLogger)
+		if err != nil {
+			cnasLogger.Warn().Msgf("ECS Crawler: Failed to check ENI %s: %v", eni, err)
+			// Continue to next ENI like reference code
 			continue
 		}
 
-		// Merge VPC results into main map
-		for eniID, isExposed := range result.eniResults {
-			nicExposureMap[eniID] = isExposed
+		// Map findings back to all containers on this ENI (like reference code)
+		for _, container := range containersOnENI {
+			containerKey := fmt.Sprintf("%s/%s", container.TaskARN, container.Name)
+			results[containerKey] = findings
+		}
+
+		// Update exposure map for this ENI
+		nicExposureMap[eni] = len(findings) > 0
+
+		if len(findings) > 0 {
+			cnasLogger.Info().Msgf("ECS Crawler: ENI %s is publicly exposed (%d findings)", eni, len(findings))
+		} else {
+			cnasLogger.Debug().Msgf("ECS Crawler: ENI %s is private (no findings)", eni)
 		}
 	}
 
-	cnasLogger.Info().Msgf("ECS Crawler: Scope-like analysis completed for %d ENIs", len(nicIDs))
-
+	cnasLogger.Info().Msgf("ECS Crawler: Real AWS Network Access Scope analysis completed for %d unique ENIs", len(eniToContainers))
 	return nicExposureMap, nil
 }
 
-// groupENIsByVPC groups ENIs by their VPC for efficient batch processing.
-func groupENIsByVPC(ctx context.Context, ec2Client *ec2.Client, nicIDs []string, cnasLogger zerolog.Logger) (map[string][]string, error) {
-	vpcToENIs := make(map[string][]string)
+// checkSpecificENIAccess creates a targeted scope for a specific ENI (following reference code pattern exactly)
+func checkSpecificENIAccess(ctx context.Context, ec2Client *ec2.Client, eniID string, ports []string, cnasLogger zerolog.Logger) ([]ec2types.AccessScopePath, error) {
+	cnasLogger.Debug().Msgf("ECS Crawler: Starting checkSpecificENIAccess for ENI %s with ports %v", eniID, ports)
 
-	// Process ENIs in batches to handle pagination
-	for i := 0; i < len(nicIDs); i += maxENIsPerCall {
-		end := i + maxENIsPerCall
-		if end > len(nicIDs) {
-			end = len(nicIDs)
-		}
-
-		batch := nicIDs[i:end]
-		cnasLogger.Debug().Msgf("ECS Crawler: Describing batch of %d ENIs (batch %d/%d)",
-			len(batch), (i/maxENIsPerCall)+1, (len(nicIDs)+maxENIsPerCall-1)/maxENIsPerCall)
-
-		describeInput := &ec2.DescribeNetworkInterfacesInput{
-			NetworkInterfaceIds: batch,
-		}
-
-		describeOutput, err := ec2Client.DescribeNetworkInterfaces(ctx, describeInput)
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe network interfaces batch %d: %w", (i/maxENIsPerCall)+1, err)
-		}
-
-		// Process this batch's results
-		for _, eni := range describeOutput.NetworkInterfaces {
-			eniID := aws.ToString(eni.NetworkInterfaceId)
-			vpcID := aws.ToString(eni.VpcId)
-			vpcToENIs[vpcID] = append(vpcToENIs[vpcID], eniID)
-		}
+	// Create match paths targeting the specific ENI (fixed API usage)
+	matchPaths := []ec2types.AccessScopePathRequest{
+		{
+			Source: &ec2types.PathStatementRequest{
+				ResourceStatement: &ec2types.ResourceStatementRequest{
+					// Use ResourceTypes only for source (Internet Gateway)
+					ResourceTypes: []string{
+						"AWS::EC2::InternetGateway",
+					},
+				},
+			},
+			Destination: &ec2types.PathStatementRequest{
+				ResourceStatement: &ec2types.ResourceStatementRequest{
+					// Use Resources only for destination (specific ENI)
+					Resources: []string{eniID}, // Target specific ENI
+				},
+				PacketHeaderStatement: &ec2types.PacketHeaderStatementRequest{
+					DestinationPorts: ports,
+					Protocols:        []ec2types.Protocol{ec2types.ProtocolTcp},
+					SourceAddresses:  []string{"0.0.0.0/0"},
+				},
+			},
+		},
 	}
 
-	cnasLogger.Debug().Msgf("ECS Crawler: Grouped %d ENIs across %d VPCs", len(nicIDs), len(vpcToENIs))
+	cnasLogger.Debug().Msgf("ECS Crawler: Created %d match paths for ENI %s", len(matchPaths), eniID)
 
-	return vpcToENIs, nil
-}
+	cnasLogger.Debug().Msgf("ECS Crawler: Creating network access scope for ENI %s with %d match paths", eniID, len(matchPaths))
 
-// analyzeVPCENIsBatch efficiently analyzes all ENIs in a VPC for public exposure.
-func analyzeVPCENIsBatch(ctx context.Context, ec2Client *ec2.Client, vpcID string, eniIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
-	eniResults := make(map[string]bool)
-
-	// Initialize all ENIs as not exposed
-	for _, eniID := range eniIDs {
-		eniResults[eniID] = false
+	// Create scope (exactly like reference code)
+	scopeInput := &ec2.CreateNetworkInsightsAccessScopeInput{
+		ClientToken: aws.String(fmt.Sprintf("eni-scope-%s-%d", eniID, time.Now().Unix())),
+		TagSpecifications: []ec2types.TagSpecification{
+			{
+				ResourceType: ec2types.ResourceTypeNetworkInsightsAccessScope,
+				Tags: []ec2types.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(fmt.Sprintf("Check-ENI-%s", eniID)),
+					},
+					{
+						Key:   aws.String("TargetENI"),
+						Value: aws.String(eniID),
+					},
+				},
+			},
+		},
+		MatchPaths: matchPaths,
 	}
 
-	cnasLogger.Debug().Msgf("ECS Crawler: Analyzing %d ENIs in VPC %s", len(eniIDs), vpcID)
-
-	// Check if VPC has internet gateway (prerequisite for public access) with pagination
-	igwID, err := findInternetGatewayForVPC(ctx, ec2Client, vpcID, cnasLogger)
+	cnasLogger.Debug().Msgf("ECS Crawler: About to call CreateNetworkInsightsAccessScope for ENI %s", eniID)
+	scopeResult, err := ec2Client.CreateNetworkInsightsAccessScope(ctx, scopeInput)
+	cnasLogger.Debug().Msgf("ECS Crawler: CreateNetworkInsightsAccessScope call completed for ENI %s (err: %v)", eniID, err)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find internet gateway for VPC %s: %w", vpcID, err)
+		cnasLogger.Error().Msgf("ECS Crawler: Failed to create scope for ENI %s: %v", eniID, err)
+		return nil, fmt.Errorf("failed to create scope for ENI %s: %w", eniID, err)
 	}
 
-	if igwID == "" {
-		cnasLogger.Debug().Msgf("ECS Crawler: VPC %s has no internet gateway - all ENIs are private", vpcID)
-		return eniResults, nil // No internet gateway = all ENIs are private
-	}
+	scopeID := aws.ToString(scopeResult.NetworkInsightsAccessScope.NetworkInsightsAccessScopeId)
 
-	cnasLogger.Debug().Msgf("ECS Crawler: VPC %s has internet gateway %s - checking ENI reachability", vpcID, igwID)
-
-	// For efficiency in scope approach, we can batch analyze a few ENIs at once
-	// Use smaller batches to avoid API limits while still being more efficient than individual calls
-	for i := 0; i < len(eniIDs); i += eniAnalysisBatchSize {
-		end := i + eniAnalysisBatchSize
-		if end > len(eniIDs) {
-			end = len(eniIDs)
-		}
-
-		batch := eniIDs[i:end]
-		batchResults, err := analyzeENIBatch(ctx, ec2Client, igwID, batch, cnasLogger)
-		if err != nil {
-			cnasLogger.Warn().Msgf("ECS Crawler: Error analyzing ENI batch in VPC %s: %v", vpcID, err)
-			continue
-		}
-
-		// Merge batch results
-		for eniID, isExposed := range batchResults {
-			eniResults[eniID] = isExposed
-		}
-	}
-
-	return eniResults, nil
-}
-
-// analyzeENIBatch analyzes a batch of ENIs using optimized batch polling.
-func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, eniIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
-	results := make(map[string]bool)
-
-	// Initialize all as not exposed
-	for _, eniID := range eniIDs {
-		results[eniID] = false
-	}
-
-	if len(eniIDs) == 0 {
-		return results, nil
-	}
-
-	cnasLogger.Debug().Msgf("ECS Crawler: Starting batch analysis for %d ENIs", len(eniIDs))
-
-	// Step 1: Create all network insights paths concurrently
-	type pathResult struct {
-		eniID  string
-		pathID string
-		err    error
-	}
-	pathChan := make(chan pathResult, len(eniIDs))
-
-	for _, eniID := range eniIDs {
-		go func(eni string) {
-			pathInput := &ec2.CreateNetworkInsightsPathInput{
-				Source:      aws.String(igwID),
-				Destination: aws.String(eni),
-				Protocol:    ec2types.ProtocolTcp,
-			}
-			pathOutput, err := ec2Client.CreateNetworkInsightsPath(ctx, pathInput)
-			if err != nil {
-				pathChan <- pathResult{eni, "", err}
-				return
-			}
-			pathID := aws.ToString(pathOutput.NetworkInsightsPath.NetworkInsightsPathId)
-			pathChan <- pathResult{eni, pathID, nil}
-		}(eniID)
-	}
-
-	// Collect path creation results
-	eniToPath := make(map[string]string)
-	var pathIDs []string
-
-	for i := 0; i < len(eniIDs); i++ {
-		result := <-pathChan
-		if result.err != nil {
-			cnasLogger.Debug().Msgf("ECS Crawler: Failed to create path for ENI %s: %v", result.eniID, result.err)
-			continue
-		}
-		eniToPath[result.eniID] = result.pathID
-		pathIDs = append(pathIDs, result.pathID)
-	}
-
-	if len(pathIDs) == 0 {
-		cnasLogger.Warn().Msg("ECS Crawler: No paths created successfully for batch")
-		return results, nil
-	}
-
-	// Ensure cleanup of all paths
+	// Ensure cleanup of scope
 	defer func() {
-		for _, pathID := range pathIDs {
-			_, err := ec2Client.DeleteNetworkInsightsPath(ctx, &ec2.DeleteNetworkInsightsPathInput{
-				NetworkInsightsPathId: aws.String(pathID),
-			})
-			if err != nil {
-				cnasLogger.Debug().Msgf("ECS Crawler: Failed to delete path %s: %v", pathID, err)
-			}
+		cnasLogger.Debug().Msgf("ECS Crawler: Cleaning up scope %s for ENI %s", scopeID, eniID)
+		_, err := ec2Client.DeleteNetworkInsightsAccessScope(ctx, &ec2.DeleteNetworkInsightsAccessScopeInput{
+			NetworkInsightsAccessScopeId: aws.String(scopeID),
+		})
+		if err != nil {
+			cnasLogger.Warn().Msgf("ECS Crawler: Failed to delete scope %s: %v", scopeID, err)
 		}
 	}()
 
-	// Step 2: Start all analyses concurrently
-	type analysisResult struct {
-		pathID     string
-		analysisID string
-		err        error
-	}
-	analysisChan := make(chan analysisResult, len(pathIDs))
-
-	for _, pathID := range pathIDs {
-		go func(pID string) {
-			analysisInput := &ec2.StartNetworkInsightsAnalysisInput{
-				NetworkInsightsPathId: aws.String(pID),
-			}
-			analysisOutput, err := ec2Client.StartNetworkInsightsAnalysis(ctx, analysisInput)
-			if err != nil {
-				analysisChan <- analysisResult{pID, "", err}
-				return
-			}
-			analysisID := aws.ToString(analysisOutput.NetworkInsightsAnalysis.NetworkInsightsAnalysisId)
-			analysisChan <- analysisResult{pID, analysisID, nil}
-		}(pathID)
+	// Start analysis (exactly like reference code)
+	analysisInput := &ec2.StartNetworkInsightsAccessScopeAnalysisInput{
+		NetworkInsightsAccessScopeId: aws.String(scopeID),
+		ClientToken:                  aws.String(fmt.Sprintf("analysis-%s-%d", eniID, time.Now().Unix())),
 	}
 
-	// Collect analysis start results
-	pathToAnalysis := make(map[string]string)
-	var analysisIDs []string
-
-	for i := 0; i < len(pathIDs); i++ {
-		result := <-analysisChan
-		if result.err != nil {
-			cnasLogger.Debug().Msgf("ECS Crawler: Failed to start analysis for path %s: %v", result.pathID, result.err)
-			continue
-		}
-		pathToAnalysis[result.pathID] = result.analysisID
-		analysisIDs = append(analysisIDs, result.analysisID)
-	}
-
-	if len(analysisIDs) == 0 {
-		cnasLogger.Warn().Msg("ECS Crawler: No analyses started successfully for batch")
-		return results, nil
-	}
-
-	cnasLogger.Debug().Msgf("ECS Crawler: Started %d analyses, beginning batch polling", len(analysisIDs))
-
-	// Step 3: Poll all analyses using batched API calls (THIS IS THE KEY OPTIMIZATION!)
-	batchResults, err := pollAnalysesBatch(ctx, ec2Client, analysisIDs, cnasLogger)
+	cnasLogger.Debug().Msgf("ECS Crawler: About to start analysis for scope %s", scopeID)
+	analysisResult, err := ec2Client.StartNetworkInsightsAccessScopeAnalysis(ctx, analysisInput)
+	cnasLogger.Debug().Msgf("ECS Crawler: StartNetworkInsightsAccessScopeAnalysis call completed (err: %v)", err)
 	if err != nil {
-		return nil, fmt.Errorf("failed to poll analyses batch: %w", err)
+		return nil, fmt.Errorf("failed to start analysis for ENI %s: %w", eniID, err)
 	}
 
-	// Step 4: Map analysis results back to ENIs
-	for eniID, pathID := range eniToPath {
-		if analysisID, exists := pathToAnalysis[pathID]; exists {
-			if isExposed, found := batchResults[analysisID]; found {
-				results[eniID] = isExposed
-				cnasLogger.Debug().Msgf("ECS Crawler: ENI %s analysis result: %t", eniID, isExposed)
-			}
+	analysisID := aws.ToString(analysisResult.NetworkInsightsAccessScopeAnalysis.NetworkInsightsAccessScopeAnalysisId)
+
+	// Wait for completion (using the same pattern as reference code)
+	cnasLogger.Info().Msgf("ECS Crawler: Starting to poll for analysis %s completion", analysisID)
+	if err := waitForAnalysis(ctx, ec2Client, analysisID, cnasLogger); err != nil {
+		cnasLogger.Error().Msgf("ECS Crawler: Analysis %s failed: %v", analysisID, err)
+		return nil, err
+	}
+	cnasLogger.Info().Msgf("ECS Crawler: Analysis %s completed successfully", analysisID)
+
+	// Get findings (exactly like reference code)
+	cnasLogger.Info().Msgf("ECS Crawler: Retrieving findings for analysis %s", analysisID)
+	findingsInput := &ec2.GetNetworkInsightsAccessScopeAnalysisFindingsInput{
+		NetworkInsightsAccessScopeAnalysisId: aws.String(analysisID),
+	}
+
+	findingsResult, err := ec2Client.GetNetworkInsightsAccessScopeAnalysisFindings(ctx, findingsInput)
+	if err != nil {
+		cnasLogger.Error().Msgf("ECS Crawler: Failed to get findings for analysis %s: %v", analysisID, err)
+		return nil, fmt.Errorf("failed to get findings for ENI %s: %w", eniID, err)
+	}
+
+	cnasLogger.Debug().Msgf("ECS Crawler: Retrieved %d findings for ENI %s", len(findingsResult.AnalysisFindings), eniID)
+
+	// For current AWS SDK, we use AnalysisFindings instead of NetworkAccessScopeFindings
+	// The logic is: if there are any findings, the ENI has exposure paths
+
+	// Create a simplified AccessScopePath list for compatibility
+	var scopePaths []ec2types.AccessScopePath
+
+	// If we have any findings at all, create a basic scope path entry
+	if len(findingsResult.AnalysisFindings) > 0 {
+		cnasLogger.Debug().Msgf("ECS Crawler: Found %d analysis findings indicating exposure for ENI %s",
+			len(findingsResult.AnalysisFindings), eniID)
+
+		// Create a basic AccessScopePath to indicate exposure was found
+		scopePath := ec2types.AccessScopePath{
+			Destination: &ec2types.PathStatement{
+				ResourceStatement: &ec2types.ResourceStatement{
+					Resources: []string{eniID}, // The ENI that was found to be exposed
+				},
+			},
 		}
+		scopePaths = append(scopePaths, scopePath)
+
+		cnasLogger.Info().Msgf("ECS Crawler: ENI %s has internet exposure (confirmed by scope analysis)", eniID)
+	} else {
+		cnasLogger.Debug().Msgf("ECS Crawler: No findings for ENI %s - not exposed", eniID)
 	}
 
-	cnasLogger.Info().Msgf("ECS Crawler: Batch analysis completed for %d ENIs", len(eniIDs))
-
-	return results, nil
+	return scopePaths, nil
 }
 
-// pollAnalysesBatch polls multiple analyses using batched API calls for optimal performance.
-func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
-	results := make(map[string]bool)
+// waitForAnalysis waits for the analysis to complete (exactly like reference code)
+func waitForAnalysis(ctx context.Context, ec2Client *ec2.Client, analysisID string, cnasLogger zerolog.Logger) error {
+	timeout := time.After(scopeAnalysisTimeout)
+	ticker := time.NewTicker(pollingInterval)
+	defer ticker.Stop()
 
-	// Initialize all as not exposed
-	for _, analysisID := range analysisIDs {
-		results[analysisID] = false
-	}
-
-	if len(analysisIDs) == 0 {
-		return results, nil
-	}
-
-	cnasLogger.Debug().Msgf("ECS Crawler: Starting batch polling for %d analyses", len(analysisIDs))
-
-	// Track which analyses are still running
-	pendingAnalyses := make(map[string]bool)
-	for _, id := range analysisIDs {
-		pendingAnalyses[id] = true
-	}
-
-	// Poll with timeout
-	timeout := time.Now().Add(scopeAnalysisTimeout)
-	pollCount := 0
-
-	for time.Now().Before(timeout) && len(pendingAnalyses) > 0 {
-		pollCount++
-
-		// Create batches of analysis IDs to query (up to 200 per call)
-		var currentBatch []string
-		for analysisID := range pendingAnalyses {
-			currentBatch = append(currentBatch, analysisID)
-			if len(currentBatch) >= maxAnalysisIdsPerCall {
-				break
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("analysis timed out after %v", scopeAnalysisTimeout)
+		case <-ticker.C:
+			input := &ec2.DescribeNetworkInsightsAccessScopeAnalysesInput{
+				NetworkInsightsAccessScopeAnalysisIds: []string{analysisID},
 			}
-		}
 
-		if len(currentBatch) == 0 {
-			break
-		}
+			result, err := ec2Client.DescribeNetworkInsightsAccessScopeAnalyses(ctx, input)
+			if err != nil {
+				return err
+			}
 
-		cnasLogger.Debug().Msgf("ECS Crawler: Poll #%d - checking %d analyses in batch", pollCount, len(currentBatch))
+			if len(result.NetworkInsightsAccessScopeAnalyses) == 0 {
+				return fmt.Errorf("analysis not found")
+			}
 
-		// Batch API call - THIS IS THE KEY OPTIMIZATION!
-		describeInput := &ec2.DescribeNetworkInsightsAnalysesInput{
-			NetworkInsightsAnalysisIds: currentBatch,
-		}
-
-		describeOutput, err := ec2Client.DescribeNetworkInsightsAnalyses(ctx, describeInput)
-		if err != nil {
-			cnasLogger.Debug().Msgf("ECS Crawler: Batch polling error: %v", err)
-			time.Sleep(pollingInterval)
-
-			continue
-		}
-
-		// Process results from this batch
-		completedCount := 0
-		for _, analysis := range describeOutput.NetworkInsightsAnalyses {
-			analysisID := aws.ToString(analysis.NetworkInsightsAnalysisId)
-
+			analysis := result.NetworkInsightsAccessScopeAnalyses[0]
+			cnasLogger.Info().Msgf("ECS Crawler: Analysis %s status: %s", analysisID, analysis.Status)
 			switch analysis.Status {
 			case ec2types.AnalysisStatusSucceeded:
-				// Analysis completed successfully
-				isExposed := false
-				if analysis.NetworkPathFound != nil {
-					isExposed = aws.ToBool(analysis.NetworkPathFound)
-				}
-				results[analysisID] = isExposed
-				delete(pendingAnalyses, analysisID)
-				completedCount++
-				cnasLogger.Debug().Msgf("ECS Crawler: Analysis %s completed: exposed=%t", analysisID, isExposed)
-
+				cnasLogger.Info().Msgf("ECS Crawler: Analysis %s succeeded!", analysisID)
+				return nil
 			case ec2types.AnalysisStatusFailed:
-				// Analysis failed - keep as false (not exposed)
-				delete(pendingAnalyses, analysisID)
-				completedCount++
-				cnasLogger.Debug().Msgf("ECS Crawler: Analysis %s failed, treating as not exposed", analysisID)
-
+				cnasLogger.Error().Msgf("ECS Crawler: Analysis %s failed: %s", analysisID, aws.ToString(analysis.StatusMessage))
+				return fmt.Errorf("analysis failed: %s", aws.ToString(analysis.StatusMessage))
 			case ec2types.AnalysisStatusRunning:
-				// Still running, keep in pending list
-				cnasLogger.Debug().Msgf("ECS Crawler: Analysis %s still running", analysisID)
+				cnasLogger.Debug().Msgf("ECS Crawler: Analysis %s still running, continuing to poll...", analysisID)
+				// Continue waiting
 			}
 		}
-
-		if completedCount > 0 {
-			cnasLogger.Debug().Msgf("ECS Crawler: Poll #%d completed %d analyses, %d still pending",
-				pollCount, completedCount, len(pendingAnalyses))
-		}
-
-		// If we still have pending analyses, wait before next poll
-		if len(pendingAnalyses) > 0 {
-			time.Sleep(pollingInterval)
-		}
 	}
-
-	// Handle any analyses that timed out
-	if len(pendingAnalyses) > 0 {
-		cnasLogger.Warn().Msgf("ECS Crawler: %d analyses timed out after %v", len(pendingAnalyses), scopeAnalysisTimeout)
-		// Keep them as false (not exposed) - already initialized
-	}
-
-	cnasLogger.Info().Msgf("ECS Crawler: Batch polling completed in %d polls for %d analyses", pollCount, len(analysisIDs))
-
-	return results, nil
-}
-
-// runScopeAnalysis performs scope approach analysis on a list of NIC IDs.
-func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, nicsToAnalyze []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
-	// Use scope-based analysis (analyze all NICs at once)
-	cnasLogger.Info().Msgf("ECS Crawler: Using scope-based analysis for %d NICs", len(nicsToAnalyze))
-
-	scopeResults, err := checkContainerExposureScopeReachability(ctx, ec2Client, nicsToAnalyze, cnasLogger)
-	if err != nil {
-		return nil, fmt.Errorf("scope analysis failed: %w", err)
-	}
-
-	return scopeResults, nil
 }

@@ -43,7 +43,7 @@ func RunAnalysis(ctx context.Context, awsConfig aws.Config, containers []Contain
 	var err error
 
 	if networkAnalysisApproach == ApproachScope {
-		analysisResults, err = runScopeAnalysis(ctx, ec2Client, nicsToAnalyze, cnasLogger)
+		analysisResults, err = runScopeAnalysis(ctx, ec2Client, containers, cnasLogger)
 	} else {
 		analysisResults, err = runVPCAnalysis(ctx, ec2Client, nicsToAnalyze, cnasLogger)
 	}
