@@ -14,7 +14,7 @@ import (
 )
 
 // runScopeAnalysis performs real AWS Network Access Scope analysis following reference code pattern
-// Groups containers by ENI to avoid duplicate scopes, then maps findings back to all containers on each ENI
+// Groups containers by ENI to avoid duplicate scopes, then maps findings back to all containers on each ENI.
 func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, containers []ContainerData, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	results := make(map[string][]ec2types.AccessScopePath)
 	nicExposureMap := make(map[string]bool)
