@@ -481,3 +481,18 @@ func ecsCrawlRegionTimer(cnasLogger zerolog.Logger, region string) func() {
 		cnasLogger.Info().Msgf("ECS Crawler: Crawl region %s took %s to complete!", region, time.Since(start))
 	}
 }
+
+// getTaskNetworkInterface extracts the network interface ID from a task.
+func getTaskNetworkInterface(task *types2.Task) string {
+	for _, attachment := range task.Attachments {
+		if aws.ToString(attachment.Type) == "ElasticNetworkInterface" {
+			for _, detail := range attachment.Details {
+				if aws.ToString(detail.Name) == "networkInterfaceId" {
+					return aws.ToString(detail.Value)
+				}
+			}
+		}
+	}
+
+	return ""
+}

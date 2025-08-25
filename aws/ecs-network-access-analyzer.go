@@ -10,25 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
 const pollingInterval = 5 * time.Second
-
-// getTaskNetworkInterface extracts the network interface ID from a task.
-func getTaskNetworkInterface(task *ecstypes.Task) string {
-	for _, attachment := range task.Attachments {
-		if aws.ToString(attachment.Type) == "ElasticNetworkInterface" {
-			for _, detail := range attachment.Details {
-				if aws.ToString(detail.Name) == "networkInterfaceId" {
-					return aws.ToString(detail.Value)
-				}
-			}
-		}
-	}
-
-	return ""
-}
 
 // checkContainerExposureVPCReachability uses VPC Reachability Analyzer to check exposure.
 func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.Client, nicID string) (bool, error) {
