@@ -11,7 +11,7 @@ import (
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
-// logNICExposureStatus logs the exposure status of a NIC in a consistent format
+// logNICExposureStatus logs the exposure status of a NIC in a consistent format.
 func logNICExposureStatus(nicID string, isExposed bool, cnasLogger zerolog.Logger) {
 	status := "not exposed"
 	if isExposed {
@@ -20,7 +20,7 @@ func logNICExposureStatus(nicID string, isExposed bool, cnasLogger zerolog.Logge
 	cnasLogger.Info().Msgf("ECS Crawler: NIC %s is %s", nicID, status)
 }
 
-// findInternetGatewayForVPC finds the internet gateway for a given VPC with proper pagination
+// findInternetGatewayForVPC finds the internet gateway for a given VPC with proper pagination.
 func findInternetGatewayForVPC(ctx context.Context, ec2Client *ec2.Client, vpcID string, cnasLogger zerolog.Logger) (string, error) {
 	var nextToken *string
 

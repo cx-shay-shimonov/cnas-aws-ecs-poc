@@ -26,6 +26,7 @@ type ScanMetadata struct {
 	ExposureRate        float64   `json:"exposure_rate"`         // percentage (0.0-100.0)
 }
 
+// ExportCSV exports container data to a CSV file named "containers.csv"
 func ExportCSV(containers []ContainerData) bool {
 	// Create CSV file
 	csvFile, err := os.Create("containers.csv")
@@ -34,10 +35,8 @@ func ExportCSV(containers []ContainerData) bool {
 		return false
 	}
 	defer func() {
-		err := csvFile.Close()
-		if err != nil {
-			fmt.Println("✅ CSV file closed successfully")
-			return
+		if err := csvFile.Close(); err != nil {
+			fmt.Printf("⚠️ Failed to close CSV file: %v\n", err)
 		}
 	}()
 
@@ -86,10 +85,8 @@ func ExportJSON(containers []ContainerData, metadata ScanMetadata) bool {
 		return false
 	}
 	defer func() {
-		err := jsonFile.Close()
-		if err != nil {
-			fmt.Println("✅ JSON file closed successfully")
-			return
+		if err := jsonFile.Close(); err != nil {
+			fmt.Printf("⚠️ Failed to close JSON file: %v\n", err)
 		}
 	}()
 

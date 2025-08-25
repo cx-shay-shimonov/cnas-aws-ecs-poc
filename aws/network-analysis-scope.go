@@ -67,6 +67,7 @@ func checkContainerExposureScopeReachability(ctx context.Context, ec2Client *ec2
 	}
 
 	cnasLogger.Info().Msgf("ECS Crawler: Scope-like analysis completed for %d ENIs", len(nicIDs))
+
 	return nicExposureMap, nil
 }
 
@@ -103,6 +104,7 @@ func groupENIsByVPC(ctx context.Context, ec2Client *ec2.Client, nicIDs []string,
 	}
 
 	cnasLogger.Debug().Msgf("ECS Crawler: Grouped %d ENIs across %d VPCs", len(nicIDs), len(vpcToENIs))
+
 	return vpcToENIs, nil
 }
 
@@ -286,6 +288,7 @@ func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, e
 	}
 
 	cnasLogger.Info().Msgf("ECS Crawler: Batch analysis completed for %d ENIs", len(eniIDs))
+
 	return results, nil
 }
 
@@ -392,10 +395,11 @@ func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs [
 	}
 
 	cnasLogger.Info().Msgf("ECS Crawler: Batch polling completed in %d polls for %d analyses", pollCount, len(analysisIDs))
+
 	return results, nil
 }
 
-// runScopeAnalysis performs scope approach analysis on a list of NIC IDs
+// runScopeAnalysis performs scope approach analysis on a list of NIC IDs.
 func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, nicsToAnalyze []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	// Use scope-based analysis (analyze all NICs at once)
 	cnasLogger.Info().Msgf("ECS Crawler: Using scope-based analysis for %d NICs", len(nicsToAnalyze))

@@ -59,7 +59,6 @@ func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.C
 			NetworkInsightsPathId: aws.String(pathID),
 		})
 		if err != nil {
-			// Log cleanup failure but don't fail the analysis
 			cnasLogger.Warn().Msgf("ECS Crawler: Failed to delete network insights path: %v", err)
 		}
 
@@ -91,7 +90,7 @@ func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.C
 				NetworkInsightsPathId: aws.String(pathID),
 			})
 			if err != nil {
-				// Log cleanup failure but don't fail the analysis
+				cnasLogger.Warn().Msgf("ECS Crawler: Failed to delete network insights path during cleanup: %v", err)
 			}
 
 			if analysis.NetworkPathFound != nil {
@@ -115,7 +114,7 @@ func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.C
 	return false, fmt.Errorf("analysis timed out")
 }
 
-// runVPCAnalysis performs VPC approach analysis on a list of NIC IDs
+// runVPCAnalysis performs VPC approach analysis on a list of NIC IDs.
 func runVPCAnalysis(ctx context.Context, ec2Client *ec2.Client, nicsToAnalyze []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	nicExposureMap := make(map[string]bool)
 

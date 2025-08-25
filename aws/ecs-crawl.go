@@ -12,6 +12,7 @@ import (
 	types2 "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
+// ContainerData represents metadata and network information for an ECS container
 type ContainerData struct {
 	Name          string
 	Image         string
