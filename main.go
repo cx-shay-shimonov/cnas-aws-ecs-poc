@@ -64,8 +64,7 @@ func main() {
 		Msg("Found regions to explore")
 
 	if len(regionsNames) == 0 {
-		cnasLogger.Warn().Msg("No regions found, skipping EKS discovery")
-		//return nil, nil, fmt.Errorf("no regions found")
+		cnasLogger.Warn().Msg("No regions found, skipping ECS discovery")
 	}
 
 	cfg, err := cnasAws.LoadAWSConfig(ctx, DefaultRegion, TargetRoleArn)
@@ -131,13 +130,13 @@ func main() {
 		if !csvSuccess {
 			cnasLogger.Error().Msg("Failed to save results to CSV file")
 		} else {
-			cnasLogger.Info().Msg("Results saved to containersData.csv successfully")
+			cnasLogger.Info().Msg("Results saved to containers.csv successfully")
 		}
 
 		if !jsonSuccess {
 			cnasLogger.Error().Msg("Failed to save results to JSON file")
 		} else {
-			cnasLogger.Info().Msg("Results saved to containersData.json successfully")
+			cnasLogger.Info().Msg("Results saved to containers.json successfully")
 		}
 	} else {
 		cnasLogger.Info().Msg("No containersData found to save to CSV or JSON")

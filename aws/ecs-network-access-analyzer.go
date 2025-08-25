@@ -15,7 +15,7 @@ import (
 const pollingInterval = 5 * time.Second
 
 // checkContainerExposureVPCReachability uses VPC Reachability Analyzer to check exposure.
-func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.Client, nicID string) (bool, error) {
+func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.Client, nicID string, cnasLogger zerolog.Logger) (bool, error) {
 	// Get the VPC for this network interface
 	describeNicsInput := &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIds: []string{nicID},
@@ -71,7 +71,7 @@ func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.C
 		})
 		if err != nil {
 			// Log cleanup failure but don't fail the analysis
-			fmt.Printf("failed to delete network insights analysis: %v", err)
+			cnasLogger.Warn().Msgf("ECS Crawler: Failed to delete network insights path: %v", err)
 		}
 
 		return false, fmt.Errorf("failed to start network insights analysis: %w", err)
@@ -111,7 +111,7 @@ func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.C
 
 			return false, nil
 		}
-		fmt.Printf("Analysis with id %s still running. Polling again in %v\n", analysisID, pollingInterval)
+		cnasLogger.Debug().Msgf("ECS Crawler: Analysis %s still running, polling again in %v", analysisID, pollingInterval)
 		time.Sleep(pollingInterval)
 	}
 
@@ -126,11 +126,26 @@ func checkContainerExposureVPCReachability(ctx context.Context, ec2Client *ec2.C
 	return false, fmt.Errorf("analysis timed out")
 }
 
-// RunAnalysis performs VPC reachability analysis on unique NICs and updates the exposure map.
-func RunAnalysis(ctx context.Context, ec2Client *ec2.Client, nicExposureMap map[string]bool, cnasLogger zerolog.Logger) error {
-	if len(nicExposureMap) == 0 {
+// RunAnalysis performs VPC reachability analysis on containers and updates their PublicExposed status.
+func RunAnalysis(ctx context.Context, awsConfig aws.Config, containers []ContainerData, cnasLogger zerolog.Logger) error {
+	if len(containers) == 0 {
 		return nil
 	}
+
+	// Create EC2 client for network analysis
+	ec2Client := ec2.NewFromConfig(awsConfig)
+	cnasLogger.Debug().Msgf("ECS Crawler: Created EC2 client for network analysis in region %s", awsConfig.Region)
+
+	// Create a unique map of NICs to analyze (deduplication)
+	nicExposureMap := make(map[string]bool)
+
+	for _, container := range containers {
+		if container.NicID != "" {
+			nicExposureMap[container.NicID] = false // Initialize as not exposed
+		}
+	}
+
+	cnasLogger.Info().Msgf("ECS Crawler: Analyzing %d unique NICs for %d containers", len(nicExposureMap), len(containers))
 
 	// Create a slice of NICs to analyze
 	nicsToAnalyze := make([]string, 0, len(nicExposureMap))
@@ -151,12 +166,12 @@ func RunAnalysis(ctx context.Context, ec2Client *ec2.Client, nicExposureMap map[
 	// Start workers for each unique NIC
 	for _, nicID := range nicsToAnalyze {
 		go func(nic string) {
-			isExposed, err := checkContainerExposureVPCReachability(ctx, ec2Client, nic)
+			isExposed, err := checkContainerExposureVPCReachability(ctx, ec2Client, nic, cnasLogger)
 			resultChan <- nicResult{nic, isExposed, err}
 		}(nicID)
 	}
 
-	// Collect results and update the map
+	// Collect results and update the NIC exposure map
 	for i := 0; i < len(nicsToAnalyze); i++ {
 		result := <-resultChan
 		if result.err != nil {
@@ -169,6 +184,19 @@ func RunAnalysis(ctx context.Context, ec2Client *ec2.Client, nicExposureMap map[
 				exposureStatus = "publicly exposed"
 			}
 			cnasLogger.Info().Msgf("ECS Crawler: NIC %s is %s", result.nicID, exposureStatus)
+		}
+	}
+
+	// Update container exposure status based on NIC results
+	for i, containerData := range containers {
+		if containerData.NicID != "" {
+			if isExposed, exists := nicExposureMap[containerData.NicID]; exists {
+				containers[i].PublicExposed = isExposed
+			} else {
+				cnasLogger.Warn().Msgf("ECS Crawler: NIC %s for container %s not found in analysis results", containerData.NicID, containerData.Name)
+			}
+		} else {
+			cnasLogger.Warn().Msgf("ECS Crawler: Container %s does not have a valid NIC ID", containerData.Name)
 		}
 	}
 
