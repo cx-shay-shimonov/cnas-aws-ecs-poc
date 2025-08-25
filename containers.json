@@ -1,16 +1,6 @@
 {
   "results": [
     {
-      "Name": "demo-php",
-      "Image": "822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service",
-      "ImageSHA": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
-      "PublicExposed": false,
-      "ClusterName": "demo-php-cluster",
-      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-cluster/6de39b1e068a47e4904c51aea6c50f40",
-      "Region": "eu-west-2",
-      "NicID": "eni-0960b562b52e85d25"
-    },
-    {
       "Name": "nginx-container",
       "Image": "nginx:latest",
       "ImageSHA": "sha256:91734281c0ebfc6f1aea979cffeed5079cfe786228a71cc6f1f46a228cde6e34",
@@ -29,13 +19,23 @@
       "TaskARN": "arn:aws:ecs:us-east-1:822112283600:task/AST-83961-Fargate/0ca144eb9825407da40e2ee9f73ccf32",
       "Region": "us-east-1",
       "NicID": "eni-0d925d5983cb0b165"
+    },
+    {
+      "Name": "demo-php",
+      "Image": "822112283600.dkr.ecr.eu-west-2.amazonaws.com/demo-php/php-demo-service",
+      "ImageSHA": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
+      "PublicExposed": false,
+      "ClusterName": "demo-php-cluster",
+      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-cluster/6de39b1e068a47e4904c51aea6c50f40",
+      "Region": "eu-west-2",
+      "NicID": "eni-0960b562b52e85d25"
     }
   ],
   "metadata": {
-    "total_scan_time": "25.636353541s",
-    "total_scan_time_ms": 25636,
-    "scan_start_time": "2025-08-25T21:27:01.910788+03:00",
-    "scan_end_time": "2025-08-25T21:27:27.547503+03:00",
+    "total_scan_time": "26.511890334s",
+    "total_scan_time_ms": 26511,
+    "scan_start_time": "2025-08-25T21:36:34.303894+03:00",
+    "scan_end_time": "2025-08-25T21:37:00.840271+03:00",
     "total_containers": 3,
     "total_public_exposed": 0,
     "total_regions_scanned": 33,

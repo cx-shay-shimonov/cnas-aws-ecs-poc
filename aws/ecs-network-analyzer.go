@@ -189,7 +189,7 @@ func findInternetGatewayForVPC(ctx context.Context, ec2Client *ec2.Client, vpcID
 }
 
 // checkContainerExposureScopeReachability uses batch VPC analysis to simulate scope-like behavior
-// This approach groups ENIs by VPC and processes them more efficiently than individual analysis
+// This approach groups ENIs by VPC and processes them more efficiently than individual analysis.
 func checkContainerExposureScopeReachability(ctx context.Context, ec2Client *ec2.Client, nicIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	nicExposureMap := make(map[string]bool)
 
@@ -247,7 +247,7 @@ func checkContainerExposureScopeReachability(ctx context.Context, ec2Client *ec2
 	return nicExposureMap, nil
 }
 
-// groupENIsByVPC groups ENIs by their VPC for efficient batch processing
+// groupENIsByVPC groups ENIs by their VPC for efficient batch processing.
 func groupENIsByVPC(ctx context.Context, ec2Client *ec2.Client, nicIDs []string, cnasLogger zerolog.Logger) (map[string][]string, error) {
 	vpcToENIs := make(map[string][]string)
 
@@ -283,7 +283,7 @@ func groupENIsByVPC(ctx context.Context, ec2Client *ec2.Client, nicIDs []string,
 	return vpcToENIs, nil
 }
 
-// analyzeVPCENIsBatch efficiently analyzes all ENIs in a VPC for public exposure
+// analyzeVPCENIsBatch efficiently analyzes all ENIs in a VPC for public exposure.
 func analyzeVPCENIsBatch(ctx context.Context, ec2Client *ec2.Client, vpcID string, eniIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	eniResults := make(map[string]bool)
 
@@ -331,7 +331,7 @@ func analyzeVPCENIsBatch(ctx context.Context, ec2Client *ec2.Client, vpcID strin
 	return eniResults, nil
 }
 
-// analyzeENIBatch analyzes a batch of ENIs using optimized batch polling
+// analyzeENIBatch analyzes a batch of ENIs using optimized batch polling.
 func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, eniIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	results := make(map[string]bool)
 
@@ -466,7 +466,7 @@ func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, e
 	return results, nil
 }
 
-// pollAnalysesBatch polls multiple analyses using batched API calls for optimal performance
+// pollAnalysesBatch polls multiple analyses using batched API calls for optimal performance.
 func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	results := make(map[string]bool)
 
@@ -518,6 +518,7 @@ func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs [
 		if err != nil {
 			cnasLogger.Debug().Msgf("ECS Crawler: Batch polling error: %v", err)
 			time.Sleep(pollingInterval)
+
 			continue
 		}
 
