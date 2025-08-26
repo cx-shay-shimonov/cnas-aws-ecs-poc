@@ -32,10 +32,10 @@
     }
   ],
   "metadata": {
-    "total_scan_time": "20.377426375s",
-    "total_scan_time_ms": 20377,
-    "scan_start_time": "2025-08-26T13:41:58.419197+03:00",
-    "scan_end_time": "2025-08-26T13:42:18.796689+03:00",
+    "total_scan_time": "54.704758292s",
+    "total_scan_time_ms": 54704,
+    "scan_start_time": "2025-08-26T13:43:02.190955+03:00",
+    "scan_end_time": "2025-08-26T13:43:56.895889+03:00",
     "total_containers": 3,
     "total_public_exposed": 0,
     "total_regions_scanned": 33,
