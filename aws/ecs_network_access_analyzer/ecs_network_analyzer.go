@@ -1,4 +1,6 @@
-package aws
+// Package ecsnetworkaccessanalyzer provides comprehensive network analysis for ECS containers using AWS Network Access Analyzer.
+// It offers dual analysis approaches (VPC and Scope) for determining public exposure of containers.
+package ecsnetworkaccessanalyzer
 
 import (
 	"context"
@@ -6,12 +8,14 @@ import (
 
 	"github.com/rs/zerolog"
 
+	ecscontainerdata "aws-ecs-project/aws/ecs_containerdata"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
 // RunAnalysis performs network analysis on containers and updates their PublicExposed status.
-func RunAnalysis(ctx context.Context, accountID, tenantID string, awsConfig aws.Config, containers []ContainerData, cnasLogger zerolog.Logger) error {
+func RunAnalysis(ctx context.Context, accountID, tenantID string, awsConfig aws.Config, containers []ecscontainerdata.ContainerData, cnasLogger zerolog.Logger) error {
 	if len(containers) == 0 {
 		return nil
 	}

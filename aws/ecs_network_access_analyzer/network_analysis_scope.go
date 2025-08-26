@@ -1,4 +1,6 @@
-package aws
+// Package ecsnetworkaccessanalyzer implements AWS Network Access Scope analysis for comprehensive account-wide security assessment.
+// This file provides the Scope approach implementation using real AWS Network Access Scope APIs.
+package ecsnetworkaccessanalyzer
 
 import (
 	"context"
@@ -8,6 +10,8 @@ import (
 
 	"github.com/rs/zerolog"
 
+	ecscontainerdata "aws-ecs-project/aws/ecs_containerdata"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -15,12 +19,12 @@ import (
 
 // runScopeAnalysis performs real AWS Network Access Scope analysis following reference code pattern
 // Groups containers by ENI to avoid duplicate scopes, then maps findings back to all containers on each ENI.
-func runScopeAnalysis(ctx context.Context, accountID string, tenantID string, ec2Client *ec2.Client, containers []ContainerData, cnasLogger zerolog.Logger) (map[string]bool, error) {
+func runScopeAnalysis(ctx context.Context, accountID, tenantID string, ec2Client *ec2.Client, containers []ecscontainerdata.ContainerData, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	results := make(map[string][]ec2types.AccessScopePath)
 	nicExposureMap := make(map[string]bool)
 
 	// Group containers by their network interfaces to avoid duplicate scopes (like reference code)
-	eniToContainers := make(map[string][]ContainerData)
+	eniToContainers := make(map[string][]ecscontainerdata.ContainerData)
 	for _, container := range containers {
 		if container.NicID != "" {
 			eniToContainers[container.NicID] = append(eniToContainers[container.NicID], container)
@@ -34,8 +38,8 @@ func runScopeAnalysis(ctx context.Context, accountID string, tenantID string, ec
 		return nicExposureMap, nil
 	}
 
-	// Define common web ports to check (like the reference code)
-	ports := []string{"80", "443", "8080", "3000", "8000", "9000"}
+	// Use common web ports defined in constants
+	ports := defaultWebPorts
 
 	// Create and analyze scope for each unique ENI (exactly like reference code)
 	eniCount := 0

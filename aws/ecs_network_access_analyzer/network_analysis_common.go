@@ -1,10 +1,14 @@
-package aws
+// Package ecsnetworkaccessanalyzer provides shared utilities for network analysis operations.
+// This file contains common functions used by both VPC and Scope analysis approaches.
+package ecsnetworkaccessanalyzer
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/rs/zerolog"
+
+	ecscontainerdata "aws-ecs-project/aws/ecs_containerdata"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -45,6 +49,7 @@ func findInternetGatewayForVPC(ctx context.Context, ec2Client *ec2.Client, vpcID
 		if len(describeGwsOutput.InternetGateways) > 0 {
 			igwID := aws.ToString(describeGwsOutput.InternetGateways[0].InternetGatewayId)
 			cnasLogger.Debug().Msgf("ECS Crawler: Found internet gateway %s for VPC %s", igwID, vpcID)
+
 			return igwID, nil
 		}
 
@@ -52,17 +57,19 @@ func findInternetGatewayForVPC(ctx context.Context, ec2Client *ec2.Client, vpcID
 		if describeGwsOutput.NextToken == nil {
 			break
 		}
+
 		nextToken = describeGwsOutput.NextToken
 	}
 
 	// No internet gateway found
 	cnasLogger.Debug().Msgf("ECS Crawler: No internet gateway found for VPC %s", vpcID)
+
 	return "", nil
 }
 
 // updateContainerExposureStatus updates the PublicExposed field of containers based on NIC analysis results.
 // It merges analysisResults into nicExposureMap and logs the exposure status of each NIC.
-func updateContainerExposureStatus(containers []ContainerData, analysisResults map[string]bool, nicExposureMap map[string]bool, logger zerolog.Logger) {
+func updateContainerExposureStatus(containers []ecscontainerdata.ContainerData, analysisResults, nicExposureMap map[string]bool, logger zerolog.Logger) {
 	// Merge analysis results into exposure map and log status
 	for nicID, isExposed := range analysisResults {
 		nicExposureMap[nicID] = isExposed

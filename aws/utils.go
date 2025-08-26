@@ -1,6 +1,7 @@
 package aws
 
 import (
+	ecscontainerdata "aws-ecs-project/aws/ecs_containerdata"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -10,8 +11,8 @@ import (
 
 // ScanResults represents the complete scan output with results and metadata
 type ScanResults struct {
-	Results  []ContainerData `json:"results"`
-	Metadata ScanMetadata    `json:"metadata"`
+	Results  []ecscontainerdata.ContainerData `json:"results"`
+	Metadata ScanMetadata                     `json:"metadata"`
 }
 
 // ScanMetadata contains timing and summary information about the scan
@@ -27,7 +28,7 @@ type ScanMetadata struct {
 }
 
 // ExportCSV exports container data to a CSV file named "containers.csv"
-func ExportCSV(containers []ContainerData) bool {
+func ExportCSV(containers []ecscontainerdata.ContainerData) bool {
 	// Create CSV file
 	csvFile, err := os.Create("containers.csv")
 	if err != nil {
@@ -77,7 +78,7 @@ func ExportCSV(containers []ContainerData) bool {
 }
 
 // ExportJSON exports containers with comprehensive metadata including timing
-func ExportJSON(containers []ContainerData, metadata ScanMetadata) bool {
+func ExportJSON(containers []ecscontainerdata.ContainerData, metadata ScanMetadata) bool {
 	// Create JSON file
 	jsonFile, err := os.Create("containers.json")
 	if err != nil {

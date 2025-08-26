@@ -1,10 +1,16 @@
+// Package aws provides AWS ECS crawler functionality for discovering and analyzing containers across multiple regions.
+// It includes comprehensive network analysis integration to determine public exposure of ECS containers.
 package aws
 
 import (
 	"context"
 	"fmt"
+
+	ecscontainerdata "aws-ecs-project/aws/ecs_containerdata"
+
 	"time"
 
+	ecsnetworkaccessanalyzer "aws-ecs-project/aws/ecs_network_access_analyzer"
 	"github.com/rs/zerolog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,22 +18,12 @@ import (
 	types2 "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
-// ContainerData represents metadata and network information for an ECS container
-type ContainerData struct {
-	Name          string
-	Image         string
-	ImageSHA      string
-	PublicExposed bool
-	ClusterName   string
-
-	TaskARN string
-	Region  string
-	NicID   string // Network interface ID for optimization
-}
-
-const maxClustersPerPage = 10
-const maxTasksPerPage = 100
-const taskDescriptionBatchSize = 100 // AWS limit for DescribeTasks
+// AWS ECS API pagination and batch size limits.
+const (
+	maxClustersPerPage       = 10  // Clusters per ListClusters call
+	maxTasksPerPage          = 100 // Tasks per ListTasks call (AWS maximum)
+	taskDescriptionBatchSize = 100 // Tasks per DescribeTasks call (AWS limit)
+)
 
 func EcsCrawl(
 	regions []string,
@@ -35,12 +31,12 @@ func EcsCrawl(
 	accountID, tenantID string,
 	cfg *aws.Config,
 	cnasLogger zerolog.Logger,
-) []ContainerData {
+) []ecscontainerdata.ContainerData {
 	defer ecsCrawlTimer(cnasLogger)()
 
 	// Create channels for coordination
 	type regionResult struct {
-		containerDataList []ContainerData
+		containerDataList []ecscontainerdata.ContainerData
 		region            string
 		err               error
 	}
@@ -67,7 +63,7 @@ func EcsCrawl(
 	}
 
 	// Collect results
-	allContainers := make([]ContainerData, 0)
+	allContainers := make([]ecscontainerdata.ContainerData, 0)
 	for i := 0; i < len(regions); i++ {
 		result := <-resultChan
 		if result.err == nil {
@@ -91,7 +87,7 @@ func crawlRegionContainers(
 	tenantID string,
 	cfg aws.Config,
 	cnasLogger zerolog.Logger,
-) ([]ContainerData, error) {
+) ([]ecscontainerdata.ContainerData, error) {
 
 	defer ecsCrawlRegionTimer(cnasLogger, regionName)()
 
@@ -102,8 +98,8 @@ func crawlRegionContainers(
 
 	regionClustersList, err := listRegionClusters(ctx, ecsClient, cnasLogger)
 	if err != nil {
-		cnasLogger.Err(err).Msgf("ECS Crawler: failed to list client in region: %s.", regionName)
-		return nil, err
+		cnasLogger.Err(err).Msgf("ECS Crawler: failed to list clusters in region: %s", regionName)
+		return nil, fmt.Errorf("failed to list clusters in region %s: %w", regionName, err)
 	}
 	if regionClustersList == nil {
 		cnasLogger.Info().Msgf("ECS Crawler: No clusters in region: %s.", regionName)
@@ -112,8 +108,8 @@ func crawlRegionContainers(
 	regionContainersDataList, err := listRegionContainersData(ctx, ecsClient, regionClustersList, regionName, cnasLogger)
 
 	if err != nil {
-		cnasLogger.Err(err).Msgf("ECS Crawler: operation failed in region %s: %v", regionName, err)
-		return nil, err
+		cnasLogger.Err(err).Msgf("ECS Crawler: operation failed in region %s", regionName)
+		return nil, fmt.Errorf("failed to list containers in region %s: %w", regionName, err)
 	}
 
 	cnasLogger.Info().Msgf(
@@ -131,7 +127,7 @@ func crawlRegionContainers(
 	// Perform network analysis for all containers in this region (per-region optimization)
 	if len(regionContainersDataList) > 0 {
 		cnasLogger.Info().Msgf("ECS Crawler: Starting network analysis for %d containers in region %s", len(regionContainersDataList), regionName)
-		err := RunAnalysis(ctx, accountID, tenantID, cfg, regionContainersDataList, cnasLogger)
+		err := ecsnetworkaccessanalyzer.RunAnalysis(ctx, accountID, tenantID, cfg, regionContainersDataList, cnasLogger)
 		if err != nil {
 			cnasLogger.Warn().Msgf("ECS Crawler: Network analysis failed for region %s: %v", regionName, err)
 		} else {
@@ -229,9 +225,9 @@ func listRegionContainersData(
 	clusters []*types2.Cluster,
 	region string,
 	cnasLogger zerolog.Logger,
-) ([]ContainerData, error) {
+) ([]ecscontainerdata.ContainerData, error) {
 
-	allContainersDataList := make([]ContainerData, 0)
+	allContainersDataList := make([]ecscontainerdata.ContainerData, 0)
 	for _, cluster := range clusters {
 		cnasLogger.Info().Msgf("ECS Crawler: Processing cluster: %s", aws.ToString(cluster.ClusterName))
 		clusterContainersDataList, err := listContainersInCluster(ctx, client, cluster, region, cnasLogger)
@@ -250,12 +246,12 @@ func listRegionContainersData(
 	return allContainersDataList, nil
 }
 
-func listContainersInCluster(ctx context.Context, client *ecs.Client, cluster *types2.Cluster, region string, cnasLogger zerolog.Logger) ([]ContainerData, error) {
+func listContainersInCluster(ctx context.Context, client *ecs.Client, cluster *types2.Cluster, region string, cnasLogger zerolog.Logger) ([]ecscontainerdata.ContainerData, error) {
 	clusterArn := aws.ToString(cluster.ClusterArn)
 	clusterName := aws.ToString(cluster.ClusterName)
 	cnasLogger.Info().Msgf("ECS Crawler:      Listing containersDataList in cluster: %s", clusterName)
 
-	var containersDataList []ContainerData
+	var containersDataList []ecscontainerdata.ContainerData
 
 	// Get tasks in the cluster
 	clusterTaskArnList, err := listClusterTasks(ctx, client, clusterArn)
@@ -410,9 +406,9 @@ func createContainerData(
 	task *types2.Task,
 	container *types2.Container,
 	region string,
-) ContainerData {
+) ecscontainerdata.ContainerData {
 
-	containerData := ContainerData{
+	containerData := ecscontainerdata.ContainerData{
 		ClusterName:   aws.ToString(cluster.ClusterName),
 		Name:          aws.ToString(container.Name),
 		Image:         aws.ToString(container.Image),

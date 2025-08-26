@@ -23,7 +23,7 @@ This tool offers **two analysis approaches** optimized for different use cases:
 
 ### 🔧 **Configuration**
 
-The analysis approach is configured at **compile time** using a constant in `aws/network-analysis-constants.go`:
+The analysis approach is configured at **compile time** using a constant in `ecs_network_access_analyzer/network-analysis-constants.go`:
 
 ```go
 // Configure the network analysis approach at compile time
@@ -85,7 +85,7 @@ const networkAnalysisApproach = ApproachVPC
 
 ### ⚙️ **Configuration Constants**
 
-The application uses several configurable constants for optimal performance, located in `aws/network-analysis-constants.go`:
+The application uses several configurable constants for optimal performance, located in `ecs_network_access_analyzer/network-analysis-constants.go`:
 
 ```go
 // Analysis approach selection
@@ -132,12 +132,12 @@ The network analyzer has been **refactored into a modular architecture** for bet
 ### **📁 File Organization**
 
 ```
-aws/
-├── 📋 network-analysis-constants.go    # All configuration constants and types
-├── 🔧 network-analysis-common.go       # Shared utilities (logging, IGW discovery)  
-├── 🔍 network-analysis-vpc.go          # VPC approach implementation
-├── 🚀 network-analysis-scope.go        # Scope approach implementation  
-└── ⚡ ecs-network-analyzer.go          # Main entry point and dispatcher
+ecs_network_access_analyzer/
+├── 📋 network_analysis_constants.go    # All configuration constants and types
+├── 🔧 network_analysis_common.go       # Shared utilities (logging, IGW discovery)  
+├── 🔍 network_analysis_vpc.go          # VPC approach implementation
+├── 🚀 network_analysis_scope.go        # Scope approach implementation  
+└── ⚡ ecs_network_analyzer.go          # Main entry point and dispatcher
 ```
 
 ### **🎯 Modular Benefits**
@@ -163,18 +163,18 @@ aws/
 ### **🔄 How It Works Together**
 
 ```go
-// 1. Main entry point (ecs-network-analyzer.go)
+// 1. Main entry point (ecs_network_analyzer.go)
 RunAnalysis(containers) {
     // Create EC2 client and deduplicate NICs
     
-    // 2. Dispatch based on approach constant (network-analysis-constants.go)
+    // 2. Dispatch based on approach constant (network_analysis_constants.go)
     if networkAnalysisApproach == ApproachScope {
-        return runScopeAnalysis()  // -> network-analysis-scope.go
+        return runScopeAnalysis()  // -> network_analysis_scope.go
     } else {
-        return runVPCAnalysis()    // -> network-analysis-vpc.go  
+        return runVPCAnalysis()    // -> network_analysis_vpc.go  
     }
     
-    // 3. Both approaches use shared utilities (network-analysis-common.go)
+    // 3. Both approaches use shared utilities (network_analysis_common.go)
     // - logNICExposureStatus()
     // - findInternetGatewayForVPC()
     // - updateContainerExposureStatus()
@@ -290,7 +290,7 @@ We tell AWS "Thanks for the test, you can delete the temporary test route now."
 ### 1. Clone and Setup
 ```bash
 git clone <repository-url>
-cd aws-network-analyzer
+cd cnas-aws-connector
 go mod tidy
 ```
 
@@ -305,7 +305,7 @@ export AWS_DEFAULT_REGION=us-east-1
 
 ### 3. Run the Analysis
 ```bash
-go run combined-analyzer.go
+go run cmd/cnas-aws-connector/main.go
 ```
 
 ## 📊 Sample Output
@@ -366,11 +366,16 @@ us-east-1       AST-83961-Fargate             ecs-service-connect            NO
 To analyze containers in different AWS accounts, uncomment and configure the role assumption section:
 
 ```go
+import (
+    "github.com/aws/aws-sdk-go-v2/service/sts"
+    "github.com/checkmarxDev/cnas-aws-connector/pkg/auth"
+)
+
 const targetRoleARN = "arn:aws:iam::TARGET-ACCOUNT:role/ROLE-NAME"
 stsClient := sts.NewFromConfig(cfg)
-assumeRoleProvider := &AssumeRoleProvider{
-    stsClient: stsClient,
-    roleARN:   targetRoleARN,
+assumeRoleProvider := &auth.AssumeRoleProvider{
+    STSClient: stsClient,
+    RoleARN:   targetRoleARN,
 }
 cfg.Credentials = aws.NewCredentialsCache(assumeRoleProvider)
 ```

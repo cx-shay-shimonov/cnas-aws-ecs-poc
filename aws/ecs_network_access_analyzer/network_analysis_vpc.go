@@ -1,4 +1,6 @@
-package aws
+// Package ecsnetworkaccessanalyzer implements optimized VPC Reachability Analyzer with batch processing for efficient analysis.
+// This file provides the VPC approach implementation with intelligent batching and concurrent processing.
+package ecsnetworkaccessanalyzer
 
 import (
 	"context"
@@ -66,6 +68,7 @@ func runVPCAnalysis(ctx context.Context, ec2Client *ec2.Client, nicsToAnalyze []
 	}
 
 	cnasLogger.Info().Msgf("ECS Crawler: Optimized VPC analysis completed for %d ENIs", len(nicsToAnalyze))
+
 	return nicExposureMap, nil
 }
 
@@ -102,6 +105,7 @@ func groupENIsByVPC(ctx context.Context, ec2Client *ec2.Client, nicIDs []string,
 	}
 
 	cnasLogger.Debug().Msgf("ECS Crawler: Grouped %d ENIs across %d VPCs", len(nicIDs), len(vpcToENIs))
+
 	return vpcToENIs, nil
 }
 
@@ -284,6 +288,7 @@ func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, e
 	}
 
 	cnasLogger.Info().Msgf("ECS Crawler: Batch analysis completed for %d ENIs", len(eniIDs))
+
 	return results, nil
 }
 
@@ -339,6 +344,7 @@ func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs [
 		if err != nil {
 			cnasLogger.Debug().Msgf("ECS Crawler: Batch polling error: %v", err)
 			time.Sleep(pollingInterval)
+
 			continue
 		}
 
@@ -389,5 +395,6 @@ func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs [
 	}
 
 	cnasLogger.Info().Msgf("ECS Crawler: Batch polling completed in %d polls for %d analyses", pollCount, len(analysisIDs))
+
 	return results, nil
 }

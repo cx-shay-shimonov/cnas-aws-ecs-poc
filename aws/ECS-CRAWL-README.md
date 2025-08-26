@@ -23,12 +23,12 @@ This module systematically crawls your entire AWS ECS infrastructure to build a 
 
 ```go
 // Main entry point - coordinates multi-region crawling
-func EcsCrawl(regions []string, ctx context.Context, cfg *aws.Config, logger zerolog.Logger) []ContainerData
+func EcsCrawl(regions []string, ctx context.Context, accountID, tenantID string, cfg *aws.Config, logger zerolog.Logger) []ecscontainerdata.ContainerData
 
 // Region-level processing with network analysis integration  
-func crawlRegionContainers(regionName string, ctx context.Context, cfg aws.Config, logger zerolog.Logger) ([]ContainerData, error)
+func crawlRegionContainers(regionName string, ctx context.Context, accountID, tenantID string, cfg aws.Config, logger zerolog.Logger) ([]ecscontainerdata.ContainerData, error)
 
-// Container data structure with network optimization
+// Container data structure with network optimization (from ecs_containerdata package)
 type ContainerData struct {
     Name          string  // Container name
     Image         string  // Docker image
@@ -65,7 +65,7 @@ type ContainerData struct {
     │  2. For each cluster: List Tasks (with pagination)      │
     │  3. Describe Tasks (in batches of 100)                  │
     │  4. Extract Container Data + Network Interface IDs      │
-    │  5. Integrate with Network Analysis                      │
+    │  5. Run Network Analysis (ecs_network_access_analyzer)  │
     └─────────────────────────────────────────────────────────┘
 ```
 
@@ -132,15 +132,15 @@ output, err := client.DescribeTasks(ctx, &ecs.DescribeTasksInput{
 
 ## ⚙️ Configuration Constants
 
-All API limits and batch sizes are configurable via constants:
+All API limits and batch sizes are configurable via constants in `ecs_crawl.go`:
 
 ```go
-// Pagination limits
-const maxClustersPerPage = 10       // Clusters per ListClusters call
-const maxTasksPerPage = 100         // Tasks per ListTasks call (AWS maximum)
-
-// Batch processing limits  
-const taskDescriptionBatchSize = 100 // Tasks per DescribeTasks call (AWS limit)
+// AWS ECS API pagination and batch size limits.
+const (
+    maxClustersPerPage       = 10  // Clusters per ListClusters call
+    maxTasksPerPage          = 100 // Tasks per ListTasks call (AWS maximum)
+    taskDescriptionBatchSize = 100 // Tasks per DescribeTasks call (AWS limit)
+)
 ```
 
 ### **🔧 Tuning for Different Environments**
@@ -303,13 +303,13 @@ func getTaskNetworkInterface(task *types2.Task) string {
 
 ### **🔌 Network Analysis Integration**
 
-The crawler automatically integrates with the network analyzer:
+The crawler automatically integrates with the `ecs_network_access_analyzer` package:
 
 ```go
 // After container discovery, trigger network analysis
 if len(regionContainersDataList) > 0 {
-    logger.Info().Msgf("Starting network analysis for %d containers", len(containers))
-    err := RunAnalysis(ctx, cfg, regionContainersDataList, logger)  // -> network-analysis module
+    logger.Info().Msgf("Starting network analysis for %d containers", len(regionContainersDataList))
+    err := ecsnetworkaccessanalyzer.RunAnalysis(ctx, accountID, tenantID, cfg, regionContainersDataList, logger)
     if err != nil {
         logger.Warn().Msgf("Network analysis failed: %v", err)
     }
@@ -323,12 +323,14 @@ if len(regionContainersDataList) > 0 {
 
 ### **📊 Export Integration**
 
-Container data integrates with export utilities:
+Container data integrates with export utilities through the converters package:
 
 ```go
-// Export discovered containers
-ExportCSV(allContainers)                    // -> utils.go
-ExportJSON(allContainers, scanMetadata)     // -> utils.go with timing metadata
+// Convert and export discovered containers
+import "github.com/checkmarxDev/cnas-aws-connector/internal/converters"
+
+convertedContainers := converters.ConvertEcsContainers(allContainers, logger)
+// Export functionality available through the main application
 ```
 
 ## ⚠️ Important Notes
@@ -387,8 +389,16 @@ if err != nil {
 ```go
 import (
     "context"
+    "fmt"
+    "log"
+    "os"
+
     "github.com/rs/zerolog"
+
     "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/config"
+
+    "github.com/checkmarxDev/cnas-aws-connector/internal/aws"
 )
 
 func main() {
@@ -405,7 +415,7 @@ func main() {
     regions := []string{"us-east-1", "us-west-2", "eu-west-1"}
     
     // Discover all containers across regions
-    containers := EcsCrawl(regions, ctx, &cfg, logger)
+    containers := aws.EcsCrawl(regions, ctx, "accountID", "tenantID", &cfg, logger)
     
     fmt.Printf("Discovered %d containers across %d regions\n", len(containers), len(regions))
 }
@@ -437,7 +447,7 @@ func main() {
 
 ### **Container Data Example**
 ```go
-ContainerData{
+ecscontainerdata.ContainerData{
     Name:          "web-server",
     Image:         "nginx:1.21",
     ImageSHA:      "sha256:abc123...",
