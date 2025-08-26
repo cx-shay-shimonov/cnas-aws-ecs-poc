@@ -76,7 +76,7 @@ func main() {
 	}
 
 	startTime := time.Now()
-	containersData := cnasAws.EcsCrawl(regionsNames, ctx, &cfg, cnasLogger)
+	containersData := cnasAws.EcsCrawl(regionsNames, ctx, "test-account-id", "75d4fe35-965a-4506-b226-e0155ec84c34", &cfg, cnasLogger)
 	endTime := time.Now()
 	scanDuration := endTime.Sub(startTime)
 

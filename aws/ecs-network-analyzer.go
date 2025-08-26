@@ -11,7 +11,7 @@ import (
 )
 
 // RunAnalysis performs network analysis on containers and updates their PublicExposed status.
-func RunAnalysis(ctx context.Context, awsConfig aws.Config, containers []ContainerData, cnasLogger zerolog.Logger) error {
+func RunAnalysis(ctx context.Context, accountID, tenantID string, awsConfig aws.Config, containers []ContainerData, cnasLogger zerolog.Logger) error {
 	if len(containers) == 0 {
 		return nil
 	}
@@ -43,7 +43,7 @@ func RunAnalysis(ctx context.Context, awsConfig aws.Config, containers []Contain
 	var err error
 
 	if networkAnalysisApproach == ApproachScope {
-		analysisResults, err = runScopeAnalysis(ctx, ec2Client, containers, cnasLogger)
+		analysisResults, err = runScopeAnalysis(ctx, accountID, tenantID, ec2Client, containers, cnasLogger)
 	} else {
 		analysisResults, err = runVPCAnalysis(ctx, ec2Client, nicsToAnalyze, cnasLogger)
 	}

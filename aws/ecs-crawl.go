@@ -32,6 +32,7 @@ const taskDescriptionBatchSize = 100 // AWS limit for DescribeTasks
 func EcsCrawl(
 	regions []string,
 	ctx context.Context,
+	accountID, tenantID string,
 	cfg *aws.Config,
 	cnasLogger zerolog.Logger,
 ) []ContainerData {
@@ -53,7 +54,7 @@ func EcsCrawl(
 			regionCfg := cfg.Copy()
 			regionCfg.Region = regionName
 
-			regionContainersDataList, err := crawlRegionContainers(regionName, ctx, regionCfg, cnasLogger)
+			regionContainersDataList, err := crawlRegionContainers(regionName, ctx, accountID, tenantID, regionCfg, cnasLogger)
 			if err != nil {
 				cnasLogger.Warn().Msgf("ECS Crawler: Failed to process region %s: %v", regionName, err)
 				resultChan <- regionResult{nil, regionName, err}
@@ -86,6 +87,8 @@ func EcsCrawl(
 func crawlRegionContainers(
 	regionName string,
 	ctx context.Context,
+	accountID,
+	tenantID string,
 	cfg aws.Config,
 	cnasLogger zerolog.Logger,
 ) ([]ContainerData, error) {
@@ -128,7 +131,7 @@ func crawlRegionContainers(
 	// Perform network analysis for all containers in this region (per-region optimization)
 	if len(regionContainersDataList) > 0 {
 		cnasLogger.Info().Msgf("ECS Crawler: Starting network analysis for %d containers in region %s", len(regionContainersDataList), regionName)
-		err := RunAnalysis(ctx, cfg, regionContainersDataList, cnasLogger)
+		err := RunAnalysis(ctx, accountID, tenantID, cfg, regionContainersDataList, cnasLogger)
 		if err != nil {
 			cnasLogger.Warn().Msgf("ECS Crawler: Network analysis failed for region %s: %v", regionName, err)
 		} else {

@@ -15,7 +15,7 @@ import (
 
 // runScopeAnalysis performs real AWS Network Access Scope analysis following reference code pattern
 // Groups containers by ENI to avoid duplicate scopes, then maps findings back to all containers on each ENI.
-func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, containers []ContainerData, cnasLogger zerolog.Logger) (map[string]bool, error) {
+func runScopeAnalysis(ctx context.Context, accountID string, tenantID string, ec2Client *ec2.Client, containers []ContainerData, cnasLogger zerolog.Logger) (map[string]bool, error) {
 	results := make(map[string][]ec2types.AccessScopePath)
 	nicExposureMap := make(map[string]bool)
 
@@ -52,7 +52,7 @@ func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, containers []C
 				return strings.Join(names, ", ")
 			}())
 
-		findings, err := checkSpecificENIAccess(ctx, ec2Client, eni, ports, cnasLogger)
+		findings, err := checkSpecificENIAccess(ctx, accountID, tenantID, ec2Client, eni, ports, cnasLogger)
 		if err != nil {
 			cnasLogger.Warn().Msgf("ECS Crawler: Failed to check ENI %s: %v", eni, err)
 			// Continue to next ENI like reference code
@@ -81,57 +81,54 @@ func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, containers []C
 }
 
 // checkSpecificENIAccess creates a targeted scope for a specific ENI (following reference code pattern exactly).
-func checkSpecificENIAccess(ctx context.Context, ec2Client *ec2.Client, eniID string, ports []string, cnasLogger zerolog.Logger) ([]ec2types.AccessScopePath, error) {
+func checkSpecificENIAccess(ctx context.Context, accountID, tenantID string, ec2Client *ec2.Client, eniID string, ports []string, cnasLogger zerolog.Logger) ([]ec2types.AccessScopePath, error) {
 	cnasLogger.Debug().Msgf("ECS Crawler: Starting checkSpecificENIAccess for ENI %s with ports %v", eniID, ports)
 
-	// Create match paths targeting the specific ENI (fixed API usage)
-	matchPaths := []ec2types.AccessScopePathRequest{
-		{
-			Source: &ec2types.PathStatementRequest{
-				ResourceStatement: &ec2types.ResourceStatementRequest{
-					// Use ResourceTypes only for source (Internet Gateway)
-					ResourceTypes: []string{
-						"AWS::EC2::InternetGateway",
-					},
-				},
-			},
-			Destination: &ec2types.PathStatementRequest{
-				ResourceStatement: &ec2types.ResourceStatementRequest{
-					// Use Resources only for destination (specific ENI)
-					Resources: []string{eniID}, // Target specific ENI
-				},
-				PacketHeaderStatement: &ec2types.PacketHeaderStatementRequest{
-					DestinationPorts: ports,
-					Protocols:        []ec2types.Protocol{ec2types.ProtocolTcp},
-					SourceAddresses:  []string{"0.0.0.0/0"},
-				},
-			},
-		},
-	}
-
-	cnasLogger.Debug().Msgf("ECS Crawler: Created %d match paths for ENI %s", len(matchPaths), eniID)
-
-	cnasLogger.Debug().Msgf("ECS Crawler: Creating network access scope for ENI %s with %d match paths", eniID, len(matchPaths))
+	cnasLogger.Debug().Msgf("ECS Crawler: Creating network access scope for ENI %s with match paths", eniID)
 
 	// Create scope (exactly like reference code)
 	scopeInput := &ec2.CreateNetworkInsightsAccessScopeInput{
 		ClientToken: aws.String(fmt.Sprintf("eni-scope-%s-%d", eniID, time.Now().Unix())),
+		MatchPaths: []ec2types.AccessScopePathRequest{
+			{
+				Source: &ec2types.PathStatementRequest{
+					ResourceStatement: &ec2types.ResourceStatementRequest{
+						// Use ResourceTypes only for source (Internet Gateway)
+						ResourceTypes: []string{
+							"AWS::EC2::InternetGateway",
+						},
+					},
+				},
+				Destination: &ec2types.PathStatementRequest{
+					ResourceStatement: &ec2types.ResourceStatementRequest{
+						// Use Resources only for destination (specific ENI)
+						Resources: []string{eniID}, // Target specific ENI
+					},
+
+					PacketHeaderStatement: &ec2types.PacketHeaderStatementRequest{
+						DestinationPorts: ports,
+						Protocols:        []ec2types.Protocol{ec2types.ProtocolTcp},
+						SourceAddresses:  []string{"0.0.0.0/0"},
+					},
+				},
+			},
+		},
+
 		TagSpecifications: []ec2types.TagSpecification{
 			{
 				ResourceType: ec2types.ResourceTypeNetworkInsightsAccessScope,
 				Tags: []ec2types.Tag{
 					{
-						Key:   aws.String("Name"),
-						Value: aws.String(fmt.Sprintf("Check-ENI-%s", eniID)),
+						Key:   aws.String("accountId"),
+						Value: aws.String(accountID),
 					},
 					{
-						Key:   aws.String("TargetENI"),
-						Value: aws.String(eniID),
+						Key:   aws.String("tenantId"),
+						Value: aws.String(tenantID),
 					},
 				},
 			},
 		},
-		MatchPaths: matchPaths,
 	}
 
 	cnasLogger.Debug().Msgf("ECS Crawler: About to call CreateNetworkInsightsAccessScope for ENI %s", eniID)
