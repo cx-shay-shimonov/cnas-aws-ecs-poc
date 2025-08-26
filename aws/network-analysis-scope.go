@@ -48,6 +48,7 @@ func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, containers []C
 				for _, c := range containersOnENI {
 					names = append(names, c.Name)
 				}
+
 				return strings.Join(names, ", ")
 			}())
 
@@ -75,10 +76,11 @@ func runScopeAnalysis(ctx context.Context, ec2Client *ec2.Client, containers []C
 	}
 
 	cnasLogger.Info().Msgf("ECS Crawler: Real AWS Network Access Scope analysis completed for %d unique ENIs", len(eniToContainers))
+
 	return nicExposureMap, nil
 }
 
-// checkSpecificENIAccess creates a targeted scope for a specific ENI (following reference code pattern exactly)
+// checkSpecificENIAccess creates a targeted scope for a specific ENI (following reference code pattern exactly).
 func checkSpecificENIAccess(ctx context.Context, ec2Client *ec2.Client, eniID string, ports []string, cnasLogger zerolog.Logger) ([]ec2types.AccessScopePath, error) {
 	cnasLogger.Debug().Msgf("ECS Crawler: Starting checkSpecificENIAccess for ENI %s with ports %v", eniID, ports)
 
@@ -219,7 +221,7 @@ func checkSpecificENIAccess(ctx context.Context, ec2Client *ec2.Client, eniID st
 	return scopePaths, nil
 }
 
-// waitForAnalysis waits for the analysis to complete (exactly like reference code)
+// waitForAnalysis waits for the analysis to complete (exactly like reference code).
 func waitForAnalysis(ctx context.Context, ec2Client *ec2.Client, analysisID string, cnasLogger zerolog.Logger) error {
 	timeout := time.After(scopeAnalysisTimeout)
 	ticker := time.NewTicker(pollingInterval)
