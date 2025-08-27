@@ -10,7 +10,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	ecscontainerdata "aws-ecs-project/aws/ecs_containerdata"
+	ecsTypes "aws-ecs-project/aws/ecs_types"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -19,12 +19,12 @@ import (
 
 // runScopeAnalysis performs real AWS Network Access Scope analysis following reference code pattern
 // Groups containers by ENI to avoid duplicate scopes, then maps findings back to all containers on each ENI.
-func runScopeAnalysis(ctx context.Context, accountID, tenantID string, ec2Client *ec2.Client, containers []ecscontainerdata.ContainerData, cnasLogger zerolog.Logger) (map[string]bool, error) {
+func runScopeAnalysis(ctx context.Context, accountID, tenantID string, ec2Client *ec2.Client, containers []ecsTypes.ContainerData, cnasLogger zerolog.Logger) map[string]bool {
 	results := make(map[string][]ec2types.AccessScopePath)
 	nicExposureMap := make(map[string]bool)
 
 	// Group containers by their network interfaces to avoid duplicate scopes (like reference code)
-	eniToContainers := make(map[string][]ecscontainerdata.ContainerData)
+	eniToContainers := make(map[string][]ecsTypes.ContainerData)
 	for _, container := range containers {
 		if container.NicID != "" {
 			eniToContainers[container.NicID] = append(eniToContainers[container.NicID], container)
@@ -35,7 +35,7 @@ func runScopeAnalysis(ctx context.Context, accountID, tenantID string, ec2Client
 
 	if len(eniToContainers) == 0 {
 		cnasLogger.Warn().Msg("ECS Crawler: No ENI IDs found for scope analysis")
-		return nicExposureMap, nil
+		return nicExposureMap
 	}
 
 	// Use common web ports defined in constants
@@ -81,7 +81,7 @@ func runScopeAnalysis(ctx context.Context, accountID, tenantID string, ec2Client
 
 	cnasLogger.Info().Msgf("ECS Crawler: Real AWS Network Access Scope analysis completed for %d unique ENIs", len(eniToContainers))
 
-	return nicExposureMap, nil
+	return nicExposureMap
 }
 
 // checkSpecificENIAccess creates a targeted scope for a specific ENI (following reference code pattern exactly).
@@ -137,9 +137,10 @@ func checkSpecificENIAccess(ctx context.Context, accountID, tenantID string, ec2
 
 	cnasLogger.Debug().Msgf("ECS Crawler: About to call CreateNetworkInsightsAccessScope for ENI %s", eniID)
 	scopeResult, err := ec2Client.CreateNetworkInsightsAccessScope(ctx, scopeInput)
-	cnasLogger.Debug().Msgf("ECS Crawler: CreateNetworkInsightsAccessScope call completed for ENI %s (err: %v)", eniID, err)
+
 	if err != nil {
 		cnasLogger.Error().Msgf("ECS Crawler: Failed to create scope for ENI %s: %v", eniID, err)
+
 		return nil, fmt.Errorf("failed to create scope for ENI %s: %w", eniID, err)
 	}
 

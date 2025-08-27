@@ -3,19 +3,17 @@
 package ecsnetworkaccessanalyzer
 
 import (
+	ecsTypes "aws-ecs-project/aws/ecs_types"
 	"context"
-	"fmt"
 
 	"github.com/rs/zerolog"
-
-	ecscontainerdata "aws-ecs-project/aws/ecs_containerdata"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
 // RunAnalysis performs network analysis on containers and updates their PublicExposed status.
-func RunAnalysis(ctx context.Context, accountID, tenantID string, awsConfig aws.Config, containers []ecscontainerdata.ContainerData, cnasLogger zerolog.Logger) error {
+func RunAnalysis(ctx context.Context, accountID, tenantID string, awsConfig aws.Config, containers []ecsTypes.ContainerData, analysisApproach ecsTypes.NetworkAnalysisApproach, cnasLogger zerolog.Logger) error {
 	if len(containers) == 0 {
 		return nil
 	}
@@ -34,7 +32,7 @@ func RunAnalysis(ctx context.Context, accountID, tenantID string, awsConfig aws.
 	}
 
 	cnasLogger.Info().Msgf("ECS Crawler: Analyzing %d unique NICs for %d containers using %s approach",
-		len(nicExposureMap), len(containers), networkAnalysisApproach)
+		len(nicExposureMap), len(containers), analysisApproach)
 
 	// Create a slice of NICs to analyze
 	nicsToAnalyze := make([]string, 0, len(nicExposureMap))
@@ -44,16 +42,15 @@ func RunAnalysis(ctx context.Context, accountID, tenantID string, awsConfig aws.
 
 	// Choose analysis approach based on compile-time configuration and dispatch
 	var analysisResults map[string]bool
-	var err error
 
-	if networkAnalysisApproach == ApproachScope {
-		analysisResults, err = runScopeAnalysis(ctx, accountID, tenantID, ec2Client, containers, cnasLogger)
+	if ecsTypes.ApproachScope == analysisApproach {
+		analysisResults = runScopeAnalysis(ctx, accountID, tenantID, ec2Client, containers, cnasLogger)
 	} else {
+		var err error
 		analysisResults, err = runVPCAnalysis(ctx, ec2Client, nicsToAnalyze, cnasLogger)
-	}
-
-	if err != nil {
-		return fmt.Errorf("%s analysis failed: %w", networkAnalysisApproach, err)
+		if err != nil {
+			return err
+		}
 	}
 
 	updateContainerExposureStatus(containers, analysisResults, nicExposureMap, cnasLogger)

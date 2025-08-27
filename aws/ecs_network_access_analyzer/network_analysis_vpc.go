@@ -189,6 +189,7 @@ func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, e
 			pathOutput, err := ec2Client.CreateNetworkInsightsPath(ctx, pathInput)
 			if err != nil {
 				pathChan <- pathResult{eni, "", err}
+
 				return
 			}
 			pathID := aws.ToString(pathOutput.NetworkInsightsPath.NetworkInsightsPathId)
@@ -243,6 +244,7 @@ func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, e
 			analysisOutput, err := ec2Client.StartNetworkInsightsAnalysis(ctx, analysisInput)
 			if err != nil {
 				analysisChan <- analysisResult{pID, "", err}
+
 				return
 			}
 			analysisID := aws.ToString(analysisOutput.NetworkInsightsAnalysis.NetworkInsightsAnalysisId)
@@ -272,10 +274,7 @@ func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, e
 	cnasLogger.Debug().Msgf("ECS Crawler: Started %d analyses, beginning batch polling", len(analysisIDs))
 
 	// OPTIMIZATION 7: Batch polling - poll up to 200 analyses at once (KEY OPTIMIZATION!)
-	batchResults, err := pollAnalysesBatch(ctx, ec2Client, analysisIDs, cnasLogger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to poll analyses batch: %w", err)
-	}
+	batchResults := pollAnalysesBatch(ctx, ec2Client, analysisIDs, cnasLogger)
 
 	// Map analysis results back to ENIs
 	for eniID, pathID := range eniToPath {
@@ -293,7 +292,7 @@ func analyzeENIBatch(ctx context.Context, ec2Client *ec2.Client, igwID string, e
 }
 
 // pollAnalysesBatch polls multiple analyses using batched API calls for optimal performance.
-func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs []string, cnasLogger zerolog.Logger) (map[string]bool, error) {
+func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs []string, cnasLogger zerolog.Logger) map[string]bool {
 	results := make(map[string]bool)
 
 	// Initialize all as not exposed
@@ -302,7 +301,8 @@ func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs [
 	}
 
 	if len(analysisIDs) == 0 {
-		return results, nil
+
+		return results
 	}
 
 	cnasLogger.Debug().Msgf("ECS Crawler: Starting batch polling for %d analyses", len(analysisIDs))
@@ -396,5 +396,5 @@ func pollAnalysesBatch(ctx context.Context, ec2Client *ec2.Client, analysisIDs [
 
 	cnasLogger.Info().Msgf("ECS Crawler: Batch polling completed in %d polls for %d analyses", pollCount, len(analysisIDs))
 
-	return results, nil
+	return results
 }

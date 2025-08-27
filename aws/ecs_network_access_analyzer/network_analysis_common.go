@@ -6,13 +6,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rs/zerolog"
-
-	ecscontainerdata "aws-ecs-project/aws/ecs_containerdata"
-
+	ecsTypes "aws-ecs-project/aws/ecs_types"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/rs/zerolog"
 )
 
 // logNICExposureStatus logs the exposure status of a NIC in a consistent format.
@@ -69,7 +67,7 @@ func findInternetGatewayForVPC(ctx context.Context, ec2Client *ec2.Client, vpcID
 
 // updateContainerExposureStatus updates the PublicExposed field of containers based on NIC analysis results.
 // It merges analysisResults into nicExposureMap and logs the exposure status of each NIC.
-func updateContainerExposureStatus(containers []ecscontainerdata.ContainerData, analysisResults, nicExposureMap map[string]bool, logger zerolog.Logger) {
+func updateContainerExposureStatus(containers []ecsTypes.ContainerData, analysisResults, nicExposureMap map[string]bool, logger zerolog.Logger) {
 	// Merge analysis results into exposure map and log status
 	for nicID, isExposed := range analysisResults {
 		nicExposureMap[nicID] = isExposed
