@@ -2,45 +2,20 @@
 // This file contains compile-time configuration for analysis approaches, timeouts, and AWS API limits.
 package ecsnetworkaccessanalyzer
 
-import "time"
-
-// NetworkAnalysisApproach represents the type of network analysis to perform.
-type NetworkAnalysisApproach string
-
-// Network analysis approach constants.
-const (
-	ApproachVPC   NetworkAnalysisApproach = "vpc"   // Optimized VPC Reachability Analyzer with batch processing
-	ApproachScope NetworkAnalysisApproach = "scope" // Account-wide Network Access Scope
+import (
+	"aws-ecs-project/aws/common"
 )
 
-// Configure the network analysis approach at compile time.
-const networkAnalysisApproach = ApproachScope
-
-// API polling and timeout configurations.
+// Use centralized constants from common package
 const (
-	pollingInterval      = 5 * time.Second
-	vpcAnalysisTimeout   = 2 * time.Minute
-	scopeAnalysisTimeout = 10 * time.Minute // Real scope analysis takes longer
+	pollingInterval            = common.PollingInterval
+	vpcAnalysisTimeout         = common.VPCAnalysisTimeout
+	scopeAnalysisTimeout       = common.ScopeAnalysisTimeout
+	maxENIsPerCall             = common.MaxENIsPerCall
+	maxInternetGatewaysPerCall = common.MaxInternetGatewaysPerCall
+	maxAnalysisIdsPerCall      = common.MaxAnalysisIdsPerCall
+	eniAnalysisBatchSize       = common.ENIAnalysisBatchSize
 )
 
-// AWS API batch size and pagination limits.
-const (
-	maxENIsPerCall             = 200 // AWS DescribeNetworkInterfaces limit
-	maxInternetGatewaysPerCall = 200 // AWS DescribeInternetGateways limit
-	maxAnalysisIdsPerCall      = 200 // AWS DescribeNetworkInsightsAnalyses limit
-)
-
-// Batch processing configurations.
-const (
-	eniAnalysisBatchSize = 3 // ENIs processed concurrently within VPC scope analysis
-)
-
-// Common web service ports to analyze for public exposure.
-var defaultWebPorts = []string{
-	"80",   // HTTP
-	"443",  // HTTPS
-	"8080", // HTTP alternative
-	"3000", // Development server
-	"8000", // Development server
-	"9000", // Development server
-}
+// Use centralized default web ports from common package.
+var defaultWebPorts = common.DefaultWebPorts
