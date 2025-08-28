@@ -6,11 +6,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog"
+
 	ecsTypes "aws-ecs-project/aws/ecs_types"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/rs/zerolog"
 )
 
 // logNICExposureStatus logs the exposure status of a NIC in a consistent format.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aws-ecs-project/aws/ecs_types"
 	"github.com/aws/aws-sdk-go-v2/aws"
 
 	cnasAws "aws-ecs-project/aws"
@@ -76,7 +77,7 @@ func main() {
 	}
 
 	startTime := time.Now()
-	containersData := cnasAws.EcsCrawl(regionsNames, ctx, "test-account-id", "75d4fe35-965a-4506-b226-e0155ec84c34", &cfg, cnasLogger)
+	containersData := cnasAws.EcsCrawl(regionsNames, ctx, "test-account-id", "75d4fe35-965a-4506-b226-e0155ec84c34", &cfg, cnasLogger, ecs_types.ApproachScope)
 	endTime := time.Now()
 	scanDuration := endTime.Sub(startTime)
 

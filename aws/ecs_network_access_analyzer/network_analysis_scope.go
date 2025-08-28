@@ -146,17 +146,6 @@ func checkSpecificENIAccess(ctx context.Context, accountID, tenantID string, ec2
 
 	scopeID := aws.ToString(scopeResult.NetworkInsightsAccessScope.NetworkInsightsAccessScopeId)
 
-	// Ensure cleanup of scope
-	defer func() {
-		cnasLogger.Debug().Msgf("ECS Crawler: Cleaning up scope %s for ENI %s", scopeID, eniID)
-		_, err := ec2Client.DeleteNetworkInsightsAccessScope(ctx, &ec2.DeleteNetworkInsightsAccessScopeInput{
-			NetworkInsightsAccessScopeId: aws.String(scopeID),
-		})
-		if err != nil {
-			cnasLogger.Warn().Msgf("ECS Crawler: Failed to delete scope %s: %v", scopeID, err)
-		}
-	}()
-
 	// Start analysis (exactly like reference code)
 	analysisInput := &ec2.StartNetworkInsightsAccessScopeAnalysisInput{
 		NetworkInsightsAccessScopeId: aws.String(scopeID),
@@ -167,10 +156,49 @@ func checkSpecificENIAccess(ctx context.Context, accountID, tenantID string, ec2
 	analysisResult, err := ec2Client.StartNetworkInsightsAccessScopeAnalysis(ctx, analysisInput)
 	cnasLogger.Debug().Msgf("ECS Crawler: StartNetworkInsightsAccessScopeAnalysis call completed (err: %v)", err)
 	if err != nil {
+		// If analysis creation fails, we still need to clean up the scope
+		cnasLogger.Debug().Msgf("ECS Crawler: Analysis creation failed, cleaning up scope %s", scopeID)
+		_, cleanupErr := ec2Client.DeleteNetworkInsightsAccessScope(ctx, &ec2.DeleteNetworkInsightsAccessScopeInput{
+			NetworkInsightsAccessScopeId: aws.String(scopeID),
+		})
+		if cleanupErr != nil {
+			cnasLogger.Warn().Msgf("ECS Crawler: Failed to cleanup scope %s after analysis creation failure: %v", scopeID, cleanupErr)
+		}
+
 		return nil, fmt.Errorf("failed to start analysis for ENI %s: %w", eniID, err)
 	}
 
 	analysisID := aws.ToString(analysisResult.NetworkInsightsAccessScopeAnalysis.NetworkInsightsAccessScopeAnalysisId)
+
+	// Ensure cleanup of both analysis and scope in correct order
+	defer func() {
+		cnasLogger.Debug().Msgf("ECS Crawler: Cleaning up analysis %s and scope %s for ENI %s", analysisID, scopeID, eniID)
+
+		// First, delete the analysis (only if analysisID is valid)
+		if analysisID != "" {
+			_, err := ec2Client.DeleteNetworkInsightsAccessScopeAnalysis(ctx, &ec2.DeleteNetworkInsightsAccessScopeAnalysisInput{
+				NetworkInsightsAccessScopeAnalysisId: aws.String(analysisID),
+			})
+			if err != nil {
+				cnasLogger.Warn().Msgf("ECS Crawler: Failed to delete analysis %s: %v", analysisID, err)
+			} else {
+				cnasLogger.Debug().Msgf("ECS Crawler: Successfully deleted analysis %s", analysisID)
+			}
+
+			// Small delay to ensure AWS processes the analysis deletion before scope deletion
+			time.Sleep(1 * time.Second)
+		}
+
+		// Then, delete the scope
+		_, err := ec2Client.DeleteNetworkInsightsAccessScope(ctx, &ec2.DeleteNetworkInsightsAccessScopeInput{
+			NetworkInsightsAccessScopeId: aws.String(scopeID),
+		})
+		if err != nil {
+			cnasLogger.Warn().Msgf("ECS Crawler: Failed to delete scope %s: %v", scopeID, err)
+		} else {
+			cnasLogger.Debug().Msgf("ECS Crawler: Successfully deleted scope %s", scopeID)
+		}
+	}()
 
 	// Wait for completion (using the same pattern as reference code)
 	cnasLogger.Info().Msgf("ECS Crawler: Starting to poll for analysis %s completion", analysisID)

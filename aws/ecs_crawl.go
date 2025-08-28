@@ -18,15 +18,13 @@ import (
 	types2 "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
-// Configure the network analysis approach at compile time.
-const networkAnalysisApproach = ecsTypes.ApproachVPC // Change to ApproachScope to use Scope analysis
-
 func EcsCrawl(
 	regions []string,
 	ctx context.Context,
 	accountID, tenantID string,
 	cfg *aws.Config,
 	cnasLogger zerolog.Logger,
+	analysisApproach ecsTypes.NetworkAnalysisApproach,
 ) []ecsTypes.ContainerData {
 	defer ecsCrawlTimer(cnasLogger)()
 
@@ -46,7 +44,7 @@ func EcsCrawl(
 			regionCfg := cfg.Copy()
 			regionCfg.Region = regionName
 
-			regionContainersDataList, err := crawlRegionContainers(regionName, ctx, accountID, tenantID, regionCfg, cnasLogger)
+			regionContainersDataList, err := crawlRegionContainers(regionName, ctx, accountID, tenantID, regionCfg, cnasLogger, analysisApproach)
 			if err != nil {
 				crawlErr := common.NewECSError(regionName, "crawl region containers", err)
 				cnasLogger.Warn().Msgf("ECS Crawler: Failed to process region %s: %v", regionName, crawlErr)
@@ -83,6 +81,7 @@ func crawlRegionContainers(
 	tenantID string,
 	cfg aws.Config,
 	cnasLogger zerolog.Logger,
+	analysisApproach ecsTypes.NetworkAnalysisApproach,
 ) ([]ecsTypes.ContainerData, error) {
 
 	defer ecsCrawlRegionTimer(cnasLogger, regionName)()
@@ -125,7 +124,7 @@ func crawlRegionContainers(
 	// Perform network analysis for all containers in this region (per-region optimization)
 	if len(regionContainersDataList) > 0 {
 		cnasLogger.Info().Msgf("ECS Crawler: Starting network analysis for %d containers in region %s", len(regionContainersDataList), regionName)
-		err := ecsnetworkaccessanalyzer.RunAnalysis(ctx, accountID, tenantID, cfg, regionContainersDataList, networkAnalysisApproach, cnasLogger)
+		err := ecsnetworkaccessanalyzer.RunAnalysis(ctx, accountID, tenantID, cfg, regionContainersDataList, analysisApproach, cnasLogger)
 		if err != nil {
 			cnasLogger.Warn().Msgf("ECS Crawler: Network analysis failed for region %s: %v", regionName, err)
 		} else {
