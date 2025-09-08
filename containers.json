@@ -54,7 +54,7 @@
       "Name": "public-container",
       "Image": "nginx:latest",
       "ImageSHA": "sha256:33e0bbc7ca9ecf108140af6288c7c9d1ecc77548cbfd3952fd8466a75edefe57",
-      "PublicExposed": false,
+      "PublicExposed": true,
       "ClusterName": "hugo-ecs-cluster",
       "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/hugo-ecs-cluster/64cb1aed290e4e87b1a55c2afc11ec17",
       "Region": "us-east-2",
@@ -64,7 +64,7 @@
       "Name": "private-container",
       "Image": "busybox",
       "ImageSHA": "sha256:ab33eacc8251e3807b85bb6dba570e4698c3998eca6f0fc2ccb60575a563ea74",
-      "PublicExposed": false,
+      "PublicExposed": true,
       "ClusterName": "hugo-ecs-cluster",
       "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/hugo-ecs-cluster/64cb1aed290e4e87b1a55c2afc11ec17",
       "Region": "us-east-2",
@@ -192,13 +192,13 @@
     }
   ],
   "metadata": {
-    "total_scan_time": "2m0.426167958s",
-    "total_scan_time_ms": 120426,
-    "scan_start_time": "2025-09-08T17:09:23.465609+03:00",
-    "scan_end_time": "2025-09-08T17:11:23.892986+03:00",
+    "total_scan_time": "9m9.902470166s",
+    "total_scan_time_ms": 549902,
+    "scan_start_time": "2025-09-08T18:18:22.336454+03:00",
+    "scan_end_time": "2025-09-08T18:27:32.238746+03:00",
     "total_containers": 19,
-    "total_public_exposed": 8,
+    "total_public_exposed": 10,
     "total_regions_scanned": 34,
-    "exposure_rate": 42.10526315789473
+    "exposure_rate": 52.63157894736842
   }
 }
