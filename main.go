@@ -21,6 +21,8 @@ const DefaultRegion = "us-east-1" // Default region for getting all regions
 const TargetRoleArn = "arn:aws:iam::822112283600:role/CnasTargetRole"
 const DebugFastMode = false // Set to true for faster testing, skips region discovery
 
+const ecsNetworkAnalysisApproach = ecs_types.ApproachScope
+
 func main() {
 
 	cnasLogger := initLogger()
@@ -77,7 +79,7 @@ func main() {
 	}
 
 	startTime := time.Now()
-	containersData := cnasAws.EcsCrawl(regionsNames, ctx, "test-account-id", "75d4fe35-965a-4506-b226-e0155ec84c34", &cfg, cnasLogger, ecs_types.ApproachScope)
+	containersData := cnasAws.EcsCrawl(regionsNames, ctx, "test-account-id", "75d4fe35-965a-4506-b226-e0155ec84c34", &cfg, cnasLogger, ecsNetworkAnalysisApproach)
 	endTime := time.Now()
 	scanDuration := endTime.Sub(startTime)
 

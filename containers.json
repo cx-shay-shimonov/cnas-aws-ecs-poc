@@ -26,9 +26,9 @@
       "ImageSHA": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
       "PublicExposed": true,
       "ClusterName": "esteemed-hamster-w4qofh-ss-public-exposed-cluster",
-      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/esteemed-hamster-w4qofh-ss-public-exposed-cluster/f02ca407efdd48e28740117e6cedbbac",
+      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/esteemed-hamster-w4qofh-ss-public-exposed-cluster/ce968557f90143e294c7ad70a4c3637d",
       "Region": "eu-west-2",
-      "NicID": "eni-09f9ab0cc355d876a"
+      "NicID": "eni-082e566b44c781cd8"
     },
     {
       "Name": "demo-php",
@@ -36,9 +36,9 @@
       "ImageSHA": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
       "PublicExposed": true,
       "ClusterName": "demo-php-cluster",
-      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-cluster/29fd813ab4ba454bb30dbc9fc1a0d265",
+      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-cluster/62374925f9dd4b6ca881648e0617671c",
       "Region": "eu-west-2",
-      "NicID": "eni-0ea47fa6b748dbce3"
+      "NicID": "eni-041bfb2b8912f1d56"
     },
     {
       "Name": "demo-php",
@@ -46,19 +46,159 @@
       "ImageSHA": "sha256:7e83156e29ddb2ccca7dc1b7fc405c18ab8d1e71149cae5102252cd7d53abe7a",
       "PublicExposed": true,
       "ClusterName": "demo-php-cluster",
-      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-cluster/6de39b1e068a47e4904c51aea6c50f40",
+      "TaskARN": "arn:aws:ecs:eu-west-2:822112283600:task/demo-php-cluster/dca3664b175a42d3bf911dd361215c1f",
       "Region": "eu-west-2",
-      "NicID": "eni-0960b562b52e85d25"
+      "NicID": "eni-0c4f94e513a357b4d"
+    },
+    {
+      "Name": "public-container",
+      "Image": "nginx:latest",
+      "ImageSHA": "sha256:33e0bbc7ca9ecf108140af6288c7c9d1ecc77548cbfd3952fd8466a75edefe57",
+      "PublicExposed": false,
+      "ClusterName": "hugo-ecs-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/hugo-ecs-cluster/64cb1aed290e4e87b1a55c2afc11ec17",
+      "Region": "us-east-2",
+      "NicID": "eni-05e35c09557c19d3f"
+    },
+    {
+      "Name": "private-container",
+      "Image": "busybox",
+      "ImageSHA": "sha256:ab33eacc8251e3807b85bb6dba570e4698c3998eca6f0fc2ccb60575a563ea74",
+      "PublicExposed": false,
+      "ClusterName": "hugo-ecs-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/hugo-ecs-cluster/64cb1aed290e4e87b1a55c2afc11ec17",
+      "Region": "us-east-2",
+      "NicID": "eni-05e35c09557c19d3f"
+    },
+    {
+      "Name": "host-private-container",
+      "Image": "busybox",
+      "ImageSHA": "sha256:ab33eacc8251e3807b85bb6dba570e4698c3998eca6f0fc2ccb60575a563ea74",
+      "PublicExposed": false,
+      "ClusterName": "hugo-ecs-cluster-bridge-host",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/hugo-ecs-cluster-bridge-host/42e2450ccf8f43eeaf541c8971d3b2fb",
+      "Region": "us-east-2",
+      "NicID": ""
+    },
+    {
+      "Name": "host-public-container",
+      "Image": "nginx:latest",
+      "ImageSHA": "sha256:33e0bbc7ca9ecf108140af6288c7c9d1ecc77548cbfd3952fd8466a75edefe57",
+      "PublicExposed": false,
+      "ClusterName": "hugo-ecs-cluster-bridge-host",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/hugo-ecs-cluster-bridge-host/42e2450ccf8f43eeaf541c8971d3b2fb",
+      "Region": "us-east-2",
+      "NicID": ""
+    },
+    {
+      "Name": "yelb-db",
+      "Image": "822112283600.dkr.ecr.us-east-2.amazonaws.com/yelb-db:latest",
+      "ImageSHA": "sha256:c30bf7bf29fbce0d661063ec6536993ef881c87eda05f7037bbc30db0f52f493",
+      "PublicExposed": false,
+      "ClusterName": "demo-yelb-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/demo-yelb-cluster/32d95365bee84de59dc22ae9a02d0c49",
+      "Region": "us-east-2",
+      "NicID": "eni-0c903dee36ff6897e"
+    },
+    {
+      "Name": "yelb-ui",
+      "Image": "822112283600.dkr.ecr.us-east-2.amazonaws.com/yelb-ui:latest",
+      "ImageSHA": "sha256:800be358f90657cb3fb0f68dc162f3b7399c808d038e1ac746b8848c13d47929",
+      "PublicExposed": true,
+      "ClusterName": "demo-yelb-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/demo-yelb-cluster/3395590cfd29446aa105cdcb4540d8ed",
+      "Region": "us-east-2",
+      "NicID": "eni-0d6b3739fd2edae86"
+    },
+    {
+      "Name": "yelb-appserver",
+      "Image": "822112283600.dkr.ecr.us-east-2.amazonaws.com/yelb-appserver:latest",
+      "ImageSHA": "sha256:2eeb0594438273da5f22958ebe03cc81b8105685960ada8be12d1b82a2477fe7",
+      "PublicExposed": false,
+      "ClusterName": "demo-yelb-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/demo-yelb-cluster/547b4600ebaa471fb48b3f5bf18b7f19",
+      "Region": "us-east-2",
+      "NicID": "eni-06eae082e46b4f0a3"
+    },
+    {
+      "Name": "yelb-ui",
+      "Image": "822112283600.dkr.ecr.us-east-2.amazonaws.com/yelb-ui:latest",
+      "ImageSHA": "sha256:800be358f90657cb3fb0f68dc162f3b7399c808d038e1ac746b8848c13d47929",
+      "PublicExposed": true,
+      "ClusterName": "demo-yelb-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/demo-yelb-cluster/917f58518a8e4753834796bb39cacba1",
+      "Region": "us-east-2",
+      "NicID": "eni-06d64ef6171386991"
+    },
+    {
+      "Name": "yelb-ui",
+      "Image": "822112283600.dkr.ecr.us-east-2.amazonaws.com/yelb-ui:latest",
+      "ImageSHA": "sha256:800be358f90657cb3fb0f68dc162f3b7399c808d038e1ac746b8848c13d47929",
+      "PublicExposed": true,
+      "ClusterName": "demo-yelb-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/demo-yelb-cluster/a4d10d5c24ef4bbc8c326c6bcae40174",
+      "Region": "us-east-2",
+      "NicID": "eni-00d20a81b242a5720"
+    },
+    {
+      "Name": "yelb-appserver",
+      "Image": "822112283600.dkr.ecr.us-east-2.amazonaws.com/yelb-appserver:latest",
+      "ImageSHA": "sha256:2eeb0594438273da5f22958ebe03cc81b8105685960ada8be12d1b82a2477fe7",
+      "PublicExposed": false,
+      "ClusterName": "demo-yelb-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/demo-yelb-cluster/c80d312b6ff3446aad8abece31e4a00f",
+      "Region": "us-east-2",
+      "NicID": "eni-0fd03ce6a781ba0a5"
+    },
+    {
+      "Name": "redis-server",
+      "Image": "822112283600.dkr.ecr.us-east-2.amazonaws.com/redis:latest",
+      "ImageSHA": "sha256:0b2348685ec7cffd590b2d6bdc6d35ffbfd7f0cef90b5fe91591f40418aa0d94",
+      "PublicExposed": false,
+      "ClusterName": "demo-yelb-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/demo-yelb-cluster/e17ea709bcfd4eb4a7d47cf06062d87a",
+      "Region": "us-east-2",
+      "NicID": "eni-03df9f8305f484f19"
+    },
+    {
+      "Name": "yelb-appserver",
+      "Image": "822112283600.dkr.ecr.us-east-2.amazonaws.com/yelb-appserver:latest",
+      "ImageSHA": "sha256:2eeb0594438273da5f22958ebe03cc81b8105685960ada8be12d1b82a2477fe7",
+      "PublicExposed": false,
+      "ClusterName": "demo-yelb-cluster",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/demo-yelb-cluster/f5fcc9d061a546e0b0cf1e488357d718",
+      "Region": "us-east-2",
+      "NicID": "eni-0c10d37b489c381e0"
+    },
+    {
+      "Name": "public-container",
+      "Image": "nginx:latest",
+      "ImageSHA": "sha256:33e0bbc7ca9ecf108140af6288c7c9d1ecc77548cbfd3952fd8466a75edefe57",
+      "PublicExposed": true,
+      "ClusterName": "hugo-ecs-cluster-ec2",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/hugo-ecs-cluster-ec2/2dfb384259704d35b3b322bcec1edf4e",
+      "Region": "us-east-2",
+      "NicID": "eni-0190c08f92e2e8070"
+    },
+    {
+      "Name": "private-container",
+      "Image": "busybox",
+      "ImageSHA": "sha256:ab33eacc8251e3807b85bb6dba570e4698c3998eca6f0fc2ccb60575a563ea74",
+      "PublicExposed": true,
+      "ClusterName": "hugo-ecs-cluster-ec2",
+      "TaskARN": "arn:aws:ecs:us-east-2:822112283600:task/hugo-ecs-cluster-ec2/2dfb384259704d35b3b322bcec1edf4e",
+      "Region": "us-east-2",
+      "NicID": "eni-0190c08f92e2e8070"
     }
   ],
   "metadata": {
-    "total_scan_time": "32.067484167s",
-    "total_scan_time_ms": 32067,
-    "scan_start_time": "2025-08-27T15:29:05.112482+03:00",
-    "scan_end_time": "2025-08-27T15:29:37.180069+03:00",
-    "total_containers": 5,
-    "total_public_exposed": 3,
-    "total_regions_scanned": 3,
-    "exposure_rate": 60
+    "total_scan_time": "2m0.426167958s",
+    "total_scan_time_ms": 120426,
+    "scan_start_time": "2025-09-08T17:09:23.465609+03:00",
+    "scan_end_time": "2025-09-08T17:11:23.892986+03:00",
+    "total_containers": 19,
+    "total_public_exposed": 8,
+    "total_regions_scanned": 34,
+    "exposure_rate": 42.10526315789473
   }
 }
