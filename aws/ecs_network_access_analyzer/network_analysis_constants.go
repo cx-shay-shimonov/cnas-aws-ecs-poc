@@ -6,7 +6,7 @@ import (
 	"aws-ecs-project/aws/common"
 )
 
-// Use centralized constants from common package
+// Use centralized constants from common package.
 const (
 	pollingInterval            = common.PollingInterval
 	vpcAnalysisTimeout         = common.VPCAnalysisTimeout

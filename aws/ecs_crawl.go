@@ -49,6 +49,7 @@ func EcsCrawl(
 				crawlErr := common.NewECSError(regionName, "crawl region containers", err)
 				cnasLogger.Warn().Msgf("ECS Crawler: Failed to process region %s: %v", regionName, crawlErr)
 				resultChan <- regionResult{nil, regionName, crawlErr}
+
 				return
 			}
 
@@ -95,10 +96,12 @@ func crawlRegionContainers(
 	if err != nil {
 		crawlErr := common.NewECSError(regionName, "list clusters", err)
 		cnasLogger.Err(crawlErr).Msgf("ECS Crawler: failed to list clusters in region: %s", regionName)
+
 		return nil, crawlErr
 	}
 	if regionClustersList == nil {
 		cnasLogger.Info().Msgf("ECS Crawler: No clusters in region: %s.", regionName)
+
 		return nil, nil
 	}
 	regionContainersDataList, err := listRegionContainersData(ctx, ecsClient, regionClustersList, regionName, cnasLogger)
@@ -106,6 +109,7 @@ func crawlRegionContainers(
 	if err != nil {
 		crawlErr := common.NewECSError(regionName, "list containers", err)
 		cnasLogger.Err(crawlErr).Msgf("ECS Crawler: operation failed in region %s", regionName)
+
 		return nil, crawlErr
 	}
 
@@ -118,6 +122,7 @@ func crawlRegionContainers(
 	// Handle case when no containers found
 	if len(regionContainersDataList) == 0 {
 		cnasLogger.Info().Msgf("ECS Crawler: No containers found in region %s", regionName)
+
 		return nil, nil // Not an error - region may legitimately have no containers
 	}
 
@@ -171,6 +176,7 @@ func listRegionClusters(
 		clustersList, err := client.ListClusters(ctx, input)
 		if err != nil {
 			cnasLogger.Err(err).Msgf("ECS Crawler: failed to list ECS clusters")
+
 			return nil, err
 		}
 
@@ -325,9 +331,11 @@ func describeCluster(ctx context.Context, client *ecs.Client, clusterArn string)
 		Clusters: []string{clusterArn},
 	})
 	if err != nil {
+
 		return nil, err
 	}
 	if len(resp.Clusters) > 0 {
+
 		return &resp.Clusters[0], nil
 	}
 
@@ -349,6 +357,7 @@ func listClusterTasks(ctx context.Context, client *ecs.Client, clusterArn string
 
 		output, err := client.ListTasks(ctx, input)
 		if err != nil {
+
 			return nil, err
 		}
 
@@ -371,6 +380,7 @@ func describeClusterTasks(
 	clusterTaskArnList []string,
 ) ([]types2.Task, error) {
 	if len(clusterTaskArnList) == 0 {
+
 		return nil, nil
 	}
 
@@ -388,6 +398,7 @@ func describeClusterTasks(
 			Tasks:   batch,
 		})
 		if err != nil {
+
 			return nil, err
 		}
 
@@ -421,12 +432,14 @@ func createContainerData(
 
 func ecsCrawlTimer(cnasLogger zerolog.Logger) func() {
 	start := time.Now()
+
 	return func() {
 		cnasLogger.Info().Msgf("ECS Crawler: Crawl took %s to complete!", time.Since(start))
 	}
 }
 func ecsCrawlRegionTimer(cnasLogger zerolog.Logger, region string) func() {
 	start := time.Now()
+
 	return func() {
 		cnasLogger.Info().Msgf("ECS Crawler: Crawl region %s took %s to complete!", region, time.Since(start))
 	}
@@ -438,6 +451,7 @@ func getTaskNetworkInterface(task *types2.Task) string {
 		if aws.ToString(attachment.Type) == "ElasticNetworkInterface" {
 			for _, detail := range attachment.Details {
 				if aws.ToString(detail.Name) == "networkInterfaceId" {
+
 					return aws.ToString(detail.Value)
 				}
 			}
